@@ -57,11 +57,35 @@ body {
   z-index: 100;
 }
 
+.header-top {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  margin-bottom: 12px;
+}
+
 .app-header h1 {
   font-size: 1.5rem;
   font-weight: 700;
-  margin-bottom: 12px;
   text-align: center;
+}
+
+.settings-btn {
+  position: absolute;
+  left: 0;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.settings-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .search-container {
@@ -341,6 +365,42 @@ body {
   max-width: 400px;
 }
 
+.transcription-modal-content {
+  max-width: 500px;
+}
+
+.settings-modal-content {
+  max-width: 450px;
+}
+
+.modal-subtitle {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin-bottom: 20px;
+}
+
+.settings-section {
+  margin-bottom: 24px;
+}
+
+.settings-section h3 {
+  font-size: 1.1rem;
+  margin-bottom: 8px;
+}
+
+.settings-desc {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin-bottom: 12px;
+}
+
+.settings-note {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-style: italic;
+  margin-top: 8px;
+}
+
 @keyframes modalSlideIn {
   from {
     opacity: 0;
@@ -531,6 +591,27 @@ body {
   white-space: pre-wrap;
   line-height: 1.7;
   font-size: 0.95rem;
+}
+
+.add-transcription-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 16px;
+  transition: all 0.2s;
+}
+
+.add-transcription-btn:hover {
+  background: #2563eb;
+  transform: scale(1.02);
 }
 
 .transcription-loading {

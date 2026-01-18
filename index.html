@@ -22,7 +22,10 @@
   <div class="app-container">
     <!-- Header -->
     <header class="app-header">
-      <h1>ספר המתכונים של טל</h1>
+      <div class="header-top">
+        <h1>ספר המתכונים של טל</h1>
+        <button class="settings-btn" id="settings-btn" title="הגדרות">⚙️</button>
+      </div>
       <div class="search-container">
         <input type="search" id="search-input" placeholder="חיפוש מתכונים..." autocomplete="off">
         <button id="clear-search" class="clear-btn" aria-label="נקה חיפוש">&times;</button>
@@ -136,6 +139,55 @@
           <div class="form-actions" style="justify-content: center;">
             <button class="btn btn-secondary" id="cancel-delete">ביטול</button>
             <button class="btn btn-danger" id="confirm-delete">מחק</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Transcription Modal -->
+    <div class="modal" id="transcription-modal">
+      <div class="modal-content transcription-modal-content">
+        <button class="modal-close" id="transcription-modal-close">&times;</button>
+        <div class="modal-body">
+          <h2 class="modal-title">📝 תמלול סרטון</h2>
+          <p class="modal-subtitle">הזיני את התמלול של הסרטון כדי לחפש בו בקלות</p>
+
+          <div class="form-group">
+            <label for="transcription-text">תמלול הסרטון</label>
+            <textarea id="transcription-text" rows="10" placeholder="הכניסי כאן את הטקסט מהסרטון..."></textarea>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary" id="cancel-transcription">ביטול</button>
+            <button type="button" class="btn btn-primary" id="save-transcription">
+              <span class="btn-text">שמור תמלול</span>
+              <span class="btn-loading" style="display:none;">שומר...</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal" id="settings-modal">
+      <div class="modal-content settings-modal-content">
+        <button class="modal-close" id="settings-modal-close">&times;</button>
+        <div class="modal-body">
+          <h2 class="modal-title">⚙️ הגדרות</h2>
+
+          <div class="settings-section">
+            <h3>🤖 OpenAI API</h3>
+            <p class="settings-desc">הזיני מפתח API של OpenAI לתמלול אוטומטי של סרטונים</p>
+            <div class="form-group">
+              <label for="openai-key">מפתח API</label>
+              <input type="password" id="openai-key" placeholder="sk-..." dir="ltr">
+            </div>
+            <p class="settings-note">המפתח נשמר מקומית בדפדפן שלך בלבד</p>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary" id="cancel-settings">ביטול</button>
+            <button type="button" class="btn btn-primary" id="save-settings">שמור הגדרות</button>
           </div>
         </div>
       </div>

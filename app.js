@@ -58,6 +58,17 @@
   const deleteModal = document.getElementById('delete-modal');
   const cancelDeleteBtn = document.getElementById('cancel-delete');
   const confirmDeleteBtn = document.getElementById('confirm-delete');
+  const transcriptionModal = document.getElementById('transcription-modal');
+  const transcriptionModalClose = document.getElementById('transcription-modal-close');
+  const cancelTranscriptionBtn = document.getElementById('cancel-transcription');
+  const saveTranscriptionBtn = document.getElementById('save-transcription');
+  const transcriptionText = document.getElementById('transcription-text');
+  const settingsModal = document.getElementById('settings-modal');
+  const settingsBtn = document.getElementById('settings-btn');
+  const settingsModalClose = document.getElementById('settings-modal-close');
+  const cancelSettingsBtn = document.getElementById('cancel-settings');
+  const saveSettingsBtn = document.getElementById('save-settings');
+  const openaiKeyInput = document.getElementById('openai-key');
   const loading = document.getElementById('loading');
   const toastContainer = document.getElementById('toast-container');
 
@@ -284,13 +295,22 @@
       contentHtml += `<div class="modal-text">${escapeHtml(recipe.content.text)}</div>`;
     }
 
-    // Transcription
+    // Transcription or button to add one (for videos)
     if (recipe.content?.transcription) {
       contentHtml += `
         <div class="transcription-box">
           <h4>📝 תמלול הסרטון</h4>
           <p>${escapeHtml(recipe.content.transcription)}</p>
+          <button class="add-transcription-btn" data-action="edit-transcription" style="margin-top: 12px; background: #64748b;">
+            ✏️ ערוך תמלול
+          </button>
         </div>
+      `;
+    } else if (recipe.type === 'video') {
+      contentHtml += `
+        <button class="add-transcription-btn" data-action="add-transcription">
+          📝 הוסף תמלול
+        </button>
       `;
     }
 
@@ -685,7 +705,11 @@
     // Keyboard
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
-        if (deleteModal.classList.contains('active')) {
+        if (settingsModal.classList.contains('active')) {
+          closeSettingsModal();
+        } else if (transcriptionModal.classList.contains('active')) {
+          closeTranscriptionModal();
+        } else if (deleteModal.classList.contains('active')) {
           deleteModal.classList.remove('active');
         } else if (addModal.classList.contains('active')) {
           closeAddModal();
@@ -701,6 +725,123 @@
         window.open(e.target.src, '_blank');
       }
     });
+
+    // Transcription button in recipe modal
+    modalBody.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-action]');
+      if (!btn) return;
+
+      const action = btn.dataset.action;
+      if (action === 'add-transcription' || action === 'edit-transcription') {
+        openTranscriptionModal();
+      }
+    });
+
+    // Transcription modal
+    transcriptionModalClose.addEventListener('click', closeTranscriptionModal);
+    cancelTranscriptionBtn.addEventListener('click', closeTranscriptionModal);
+    saveTranscriptionBtn.addEventListener('click', saveTranscription);
+
+    transcriptionModal.addEventListener('click', (e) => {
+      if (e.target === transcriptionModal) closeTranscriptionModal();
+    });
+
+    // Settings modal
+    settingsBtn.addEventListener('click', openSettingsModal);
+    settingsModalClose.addEventListener('click', closeSettingsModal);
+    cancelSettingsBtn.addEventListener('click', closeSettingsModal);
+    saveSettingsBtn.addEventListener('click', saveSettings);
+
+    settingsModal.addEventListener('click', (e) => {
+      if (e.target === settingsModal) closeSettingsModal();
+    });
+  }
+
+  // Transcription modal functions
+  function openTranscriptionModal() {
+    const recipe = recipes.find(r => r.id === currentRecipeId);
+    if (!recipe) return;
+
+    // Pre-fill with existing transcription if editing
+    transcriptionText.value = recipe.content?.transcription || '';
+
+    transcriptionModal.classList.add('active');
+  }
+
+  function closeTranscriptionModal() {
+    transcriptionModal.classList.remove('active');
+    transcriptionText.value = '';
+  }
+
+  async function saveTranscription() {
+    if (!currentRecipeId) return;
+
+    const text = transcriptionText.value.trim();
+    if (!text) {
+      showToast('נא להזין תמלול', 'error');
+      return;
+    }
+
+    const saveBtn = saveTranscriptionBtn;
+    const btnText = saveBtn.querySelector('.btn-text');
+    const btnLoading = saveBtn.querySelector('.btn-loading');
+
+    btnText.style.display = 'none';
+    btnLoading.style.display = 'inline';
+    saveBtn.disabled = true;
+
+    try {
+      // Update in Firestore
+      const recipe = recipes.find(r => r.id === currentRecipeId);
+      if (!recipe.content) recipe.content = {};
+      recipe.content.transcription = text;
+
+      await db.collection('recipes').doc(currentRecipeId).update({
+        'content.transcription': text
+      });
+
+      showToast('התמלול נשמר בהצלחה!', 'success');
+      closeTranscriptionModal();
+
+      // Refresh the recipe modal
+      openRecipe(currentRecipeId);
+    } catch (error) {
+      console.error('Save transcription failed:', error);
+      showToast('שגיאה בשמירת התמלול', 'error');
+    }
+
+    btnText.style.display = 'inline';
+    btnLoading.style.display = 'none';
+    saveBtn.disabled = false;
+  }
+
+  // Settings modal functions
+  function openSettingsModal() {
+    // Load saved API key
+    const savedKey = localStorage.getItem('openai_api_key') || '';
+    openaiKeyInput.value = savedKey;
+
+    settingsModal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeSettingsModal() {
+    settingsModal.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+
+  function saveSettings() {
+    const apiKey = openaiKeyInput.value.trim();
+
+    if (apiKey) {
+      localStorage.setItem('openai_api_key', apiKey);
+      showToast('ההגדרות נשמרו', 'success');
+    } else {
+      localStorage.removeItem('openai_api_key');
+      showToast('מפתח ה-API הוסר', 'success');
+    }
+
+    closeSettingsModal();
   }
 
   // Start app
