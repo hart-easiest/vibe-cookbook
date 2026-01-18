@@ -12,9 +12,9 @@ A beautiful Hebrew recipe cookbook web app that displays recipes from various so
 
 - **Frontend**: Vanilla HTML, CSS, JavaScript
 - **Database**: Firebase Firestore
-- **Storage**: Firebase Storage (for recipe images)
+- **Authentication**: Firebase Auth (Google Sign-in)
 - **Hosting**: GitHub Pages
-- **Fonts**: Rubik (body) + Frank Ruhl Libre (headings) from Google Fonts
+- **Fonts**: Rubik (body) + Assistant (headings) from Google Fonts
 - **PWA**: iOS home screen pinnable with app-like experience
 - **RTL Support**: Full Hebrew right-to-left layout
 
@@ -26,8 +26,8 @@ A beautiful Hebrew recipe cookbook web app that displays recipes from various so
 ├── styles.css              # RTL-aware responsive styling (Editorial theme)
 ├── app.js                  # App logic, Firebase integration, UI
 ├── recipes.json            # Original recipe data (backup)
-├── firestore.rules         # Firestore security rules
-├── storage.rules           # Firebase Storage security rules
+├── firestore.rules         # Firestore security rules (email whitelist)
+├── firebase.json           # Firebase project configuration
 ├── update-descriptions.js  # Script to batch update Firebase transcriptions
 ├── update-recipe-names.js  # Script to rename "מתכון מאינסטגרם" recipes
 ├── extract-recipes.js      # Script to extract recipe text from external links
@@ -51,11 +51,12 @@ A beautiful Hebrew recipe cookbook web app that displays recipes from various so
 ### Recipe Management
 - Add recipes via URL (Instagram, YouTube, TikTok, Facebook, external sites)
 - Add recipes via text entry
-- Add recipes via image upload (Firebase Storage)
 - Manual text upload for recipe instructions
 - Automatic recipe extraction from external website links
 - Delete recipes
 - Search across names, notes, and transcriptions
+
+> **Note**: Image upload was disabled because it requires Firebase Storage on a paid plan (Blaze). Existing local images in the `images/` folder will still display.
 
 ### Authentication & Security
 - Google Sign-in authentication
@@ -160,20 +161,21 @@ GitHub Pages automatically deploys from the main branch.
 - `extract-recipes.js` - Extract recipe text from external website links (run in browser console)
 
 ### Deploying Security Rules
-To deploy Firestore and Storage security rules:
+To deploy Firestore security rules:
 1. Install Firebase CLI: `npm install -g firebase-tools`
 2. Login: `firebase login`
-3. Init project: `firebase init` (select Firestore and Storage)
-4. Deploy rules: `firebase deploy --only firestore:rules,storage`
+3. Deploy rules: `firebase deploy --only firestore:rules`
 
 ## Future Improvements
 
 - [ ] Automatic transcription using OpenAI Whisper API
-- [x] Image upload for photo recipes
+- [ ] Image upload for photo recipes (requires Firebase Blaze plan)
 - [x] Hierarchical category system
 - [x] Tagging system with auto-tagging
 - [x] Tag editing per recipe
 - [x] External recipe website branding
+- [x] Authentication with Google Sign-in
+- [x] Email whitelist for edit permissions
 - [ ] Recipe sharing functionality
 - [ ] Print-friendly recipe view
 - [ ] Ingredient scaling calculator
