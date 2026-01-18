@@ -397,12 +397,23 @@
     `).join('');
   }
 
-  // Populate category select in form
+  // Populate category select in form with hierarchical groups
   function populateCategorySelect() {
     const select = document.getElementById('recipe-category');
-    select.innerHTML = categories.map(cat =>
-      `<option value="${cat.id}">${cat.icon} ${cat.name}</option>`
-    ).join('');
+    let html = '';
+
+    MAIN_CATEGORIES.forEach(mainCat => {
+      const subCats = SUB_CATEGORIES[mainCat.id] || [];
+      if (subCats.length > 0) {
+        html += `<optgroup label="${mainCat.icon} ${mainCat.name}">`;
+        subCats.forEach(subCat => {
+          html += `<option value="${subCat.id}">${subCat.icon} ${subCat.name}</option>`;
+        });
+        html += `</optgroup>`;
+      }
+    });
+
+    select.innerHTML = html;
   }
 
   // Get filtered recipes

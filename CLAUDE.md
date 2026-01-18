@@ -12,7 +12,9 @@ A beautiful Hebrew recipe cookbook web app that displays recipes from various so
 
 - **Frontend**: Vanilla HTML, CSS, JavaScript
 - **Database**: Firebase Firestore
+- **Storage**: Firebase Storage (for recipe images)
 - **Hosting**: GitHub Pages
+- **Fonts**: Rubik (body) + Frank Ruhl Libre (headings) from Google Fonts
 - **PWA**: iOS home screen pinnable with app-like experience
 - **RTL Support**: Full Hebrew right-to-left layout
 
@@ -20,138 +22,134 @@ A beautiful Hebrew recipe cookbook web app that displays recipes from various so
 
 ```
 /Tal Cooking/
-├── index.html          # Main app HTML with modals
-├── styles.css          # RTL-aware responsive styling
-├── app.js              # App logic, Firebase integration, UI
-├── recipes.json        # Original recipe data (backup)
-├── update-descriptions.js  # Script to batch update Firebase
-└── CLAUDE.md           # This file
+├── index.html              # Main app HTML with modals
+├── styles.css              # RTL-aware responsive styling (Editorial theme)
+├── app.js                  # App logic, Firebase integration, UI
+├── recipes.json            # Original recipe data (backup)
+├── update-descriptions.js  # Script to batch update Firebase transcriptions
+├── update-recipe-names.js  # Script to rename "מתכון מאינסטגרם" recipes
+└── CLAUDE.md               # This file
 ```
 
 ## Features
 
-- Category-based filtering (desserts, cookies, main dishes, baby food, etc.)
-- Search functionality across recipe names, notes, and transcriptions
-- Video embedding for Instagram, YouTube, TikTok, and Facebook
-- Add new recipes via URL or text
+### Category System (Hierarchical)
+- **Main Categories**: ארוחת בוקר, צהריים וערב, קינוח, חטיפים ונשנושים, אוכל לתינוקות
+- **Sub-categories**: Each main category has specific sub-categories
+- Recipe cards display full hierarchy: "Main > Sub" format
+- Legacy category mapping ensures backward compatibility
+
+### Tagging System
+- 10 available tags: צמחוני, טבעוני, ללא גלוטן, ללא חלב, פרווה, מהיר, לילדים, בריא, אוכל נוחות, לאירועים
+- Auto-tagging based on recipe content analysis
+- Manual tag editing per recipe
+- Tag filter shows only tags with at least one recipe (with count)
+
+### Recipe Management
+- Add recipes via URL (Instagram, YouTube, TikTok, Facebook, external sites)
+- Add recipes via text entry
+- Add recipes via image upload (Firebase Storage)
+- Manual text upload for recipe instructions
 - Delete recipes
-- Manual transcription editing for video recipes
-- Settings modal for OpenAI API key storage
-- Toast notifications
-- Responsive mobile-first design
+- Search across names, notes, and transcriptions
 
-## Firebase Configuration
+### External Links
+- Branded cards for known recipe websites (16+ sites)
+- Site-specific icons and colors
+- Fallback display for unknown sites
 
-```javascript
-const firebaseConfig = {
-  apiKey: "AIzaSyCvhVhLRLLjCvWWv0zpe7f5uqNQNVfqT8c",
-  authDomain: "vibe-cookbook.firebaseapp.com",
-  projectId: "vibe-cookbook",
-  storageBucket: "vibe-cookbook.firebasestorage.app",
-  messagingSenderId: "934889498498",
-  appId: "1:934889498498:web:e40b4bfc0679117d4ae1e9"
-};
-```
+## Category Hierarchy
 
-## Recipe Categories
-
+### Main Categories
 | ID | Hebrew Name | Icon |
 |----|-------------|------|
-| desserts | קינוחים ועוגות | 🍰 |
-| cookies | עוגיות | 🍪 |
-| main | מנות עיקריות | 🍲 |
+| breakfast | ארוחת בוקר | 🌅 |
+| lunch-dinner | צהריים וערב | 🍽️ |
+| dessert | קינוח | 🍰 |
+| snacks | חטיפים ונשנושים | 🥨 |
 | baby | אוכל לתינוקות | 👶 |
-| breakfast | ארוחת בוקר | 🍳 |
-| yeast | מאפי שמרים | 🥐 |
-| soups | מרקים | 🥣 |
-| salads | סלטים ותוספות | 🥗 |
-| muffins | מאפינס | 🧁 |
-| savory | מאפים מלוחים | 🥧 |
-| spreads | ממרחים ורטבים | 🫙 |
+
+### Sub-Categories
+- **breakfast**: פנקייקים ווופלים, גרנולה ודגנים, ביצים ואומלטים, מאפים מתוקים
+- **lunch-dinner**: מנות עיקריות, מרקים, סלטים ותוספות, מאפים מלוחים, פסטות, ממרחים ורטבים
+- **dessert**: עוגות וקינוחים, עוגיות, מאפי שמרים, מאפינס
+- **snacks**: חטיפים מתוקים, חטיפים מלוחים
+- **baby**: ארוחות לתינוקות, חטיפים לתינוקות
+
+## Available Tags
+
+| ID | Hebrew Name | Icon | Color |
+|----|-------------|------|-------|
+| vegetarian | צמחוני | 🥬 | #22c55e |
+| vegan | טבעוני | 🌱 | #16a34a |
+| gluten-free | ללא גלוטן | 🌾 | #eab308 |
+| dairy-free | ללא חלב | 🥛 | #06b6d4 |
+| parve | פרווה | ✡️ | #8b5cf6 |
+| quick | מהיר | ⚡ | #f97316 |
+| kid-friendly | לילדים | 👶 | #ec4899 |
+| healthy | בריא | 💚 | #10b981 |
+| comfort-food | אוכל נוחות | 🏠 | #f59e0b |
+| special-occasion | לאירועים | 🎉 | #a855f7 |
+
+## Known Recipe Websites
+
+The app recognizes and displays branded cards for these sites:
+- **Hebrew**: אוגיו, תרנגולת במטבח, ליכטנשטט, קארין גורן, בייקרי 365, השולחן, פודיש, 10 דקות, סוויט מיט, גיל מורן
+- **English**: The Kitchn, Serious Eats, Bon Appétit, Allrecipes, Tasty, Delish
 
 ## Recipes with Extracted Descriptions
 
-The following recipes have had their full descriptions/instructions extracted from Instagram and saved to Firebase:
+19 recipes have full transcriptions saved in Firebase (extracted from Instagram):
 
-### Batch 1 (Initial Extraction)
+### Batch 1
+| ID | Recipe Name |
+|----|-------------|
+| 31 | פנקייק חלבה ללא גלוטן |
+| 56 | רולים של שמרים פרווה במילוי חלבה ופיסטוק |
+| 57 | סיר פרגיות עם ירקות |
+| 64 | סינבון של גיל מורן |
+| 73 | פנקייק סינבון |
+| 88 | עוגת שמרים פרווה של אמא של חן קורן |
+| 107 | סיר פרגיות חורפי עם פטריות וערמונים |
+| 135 | קציצות סלמון-בטטה לתינוקות וילדים |
 
-| ID | Recipe Name | Source |
-|----|-------------|--------|
-| 31 | פנקייק חלבה ללא גלוטן | Instagram |
-| 56 | רולים של שמרים פרווה במילוי חלבה ופיסטוק | Instagram |
-| 57 | סיר פרגיות עם ירקות | Instagram |
-| 64 | סינבון של גיל מורן | Instagram |
-| 73 | פנקייק סינבון | Instagram |
-| 88 | עוגת שמרים פרווה של אמא של חן קורן | Instagram |
-| 107 | סיר פרגיות חורפי עם פטריות וערמונים | Instagram |
-| 135 | קציצות סלמון-בטטה לתינוקות וילדים | Instagram |
-
-### Batch 2 (Additional Extraction)
-
-| ID | Recipe Name | Source |
-|----|-------------|--------|
-| 1 | לחמניות קורנפלור ממולאות בשר | Instagram (@anat_elisha_kitchen) |
-| 4 | לחמניות שום ממולאות במוצרלה | Instagram (@anat_elisha_kitchen) |
-| 5 | אסאדו ותפוחי אדמה ברוטב סילאן | Instagram (@anat_elisha_kitchen) |
-| 90 | סטייק כרובית מליון דולר | Instagram (@chenkorenn) |
-| 113 | האורז שמתחת לעוף | Instagram (@lichtenstadt) |
-| 115 | פילה סלמון עסיסי בטאבון | Instagram (@ooniisrael) |
-| 128 | סמאש בורגר טורטייה | Instagram (@lichtenstadt) |
-| 133 | סלמון בטריאקי מהטאבון | Instagram (@michi_blog) |
-| 134 | רוזלך שוקולד | Instagram (@ooniisrael) |
-| 140 | חטיף בייגלה ושוקולד | Instagram (@lichtenstadt) |
-| 148 | סיר קינואה עם ירקות וחלבון | Instagram (@orit_heller) |
-
-**Total: 19 recipes with full transcriptions**
-
-## Instagram Posts Without Full Recipes
-
-Some Instagram posts don't contain the full recipe in their caption - they either:
-- Reference an external blog/website for the full recipe
-- Have the recipe only visible in the video itself
-- Are just food inspiration without detailed instructions
-
-These posts still link to the original Instagram content where users can watch the video.
+### Batch 2
+| ID | Recipe Name |
+|----|-------------|
+| 1 | לחמניות קורנפלור ממולאות בשר |
+| 4 | לחמניות שום ממולאות במוצרלה |
+| 5 | אסאדו ותפוחי אדמה ברוטב סילאן |
+| 90 | סטייק כרובית מליון דולר |
+| 113 | האורז שמתחת לעוף |
+| 115 | פילה סלמון עסיסי בטאבון |
+| 128 | סמאש בורגר טורטייה |
+| 133 | סלמון בטריאקי מהטאבון |
+| 134 | רוזלך שוקולד |
+| 140 | חטיף בייגלה ושוקולד |
+| 148 | סיר קינואה עם ירקות וחלבון |
 
 ## Development Notes
-
-### Adding New Recipes
-Users can add recipes through the app UI using either:
-1. A URL (Instagram, YouTube, TikTok, Facebook, or any website)
-2. Plain text entry
-
-### Updating Transcriptions
-- Users can manually add/edit transcriptions via the recipe modal
-- Batch updates can be done using the browser console with Firebase SDK
 
 ### Deployment
 ```bash
 git add .
-git commit -m "Update description"
+git commit -m "Description"
 git push origin main
 ```
 GitHub Pages automatically deploys from the main branch.
 
-## Recent Updates
-
-### Image Upload Feature
-- Added ability to upload images when creating new recipes (via "תמונה" tab)
-- Added ability to add images to existing recipes (via "הוסף תמונה" button in recipe modal)
-- Images are uploaded to Firebase Storage and stored as URLs in Firestore
-- Supports multiple images per recipe with drag-and-drop
-
-### Text Upload Feature
-- Renamed transcription feature to "העלאת טקסט ידנית" (manual text upload)
-- Now available for all recipe types (not just videos)
-- Allows adding recipe text/instructions that appear under embedded videos
-
-### Recipe Name Update Script
-Run `update-recipe-names.js` in the browser console to update recipes named "מתכון מאינסטגרם" with proper titles.
+### Helper Scripts
+- `update-descriptions.js` - Batch update recipe transcriptions in Firebase
+- `update-recipe-names.js` - Rename recipes from "מתכון מאינסטגרם" to proper names
 
 ## Future Improvements
 
 - [ ] Automatic transcription using OpenAI Whisper API
 - [x] Image upload for photo recipes
+- [x] Hierarchical category system
+- [x] Tagging system with auto-tagging
+- [x] Tag editing per recipe
+- [x] External recipe website branding
 - [ ] Recipe sharing functionality
 - [ ] Print-friendly recipe view
 - [ ] Ingredient scaling calculator
