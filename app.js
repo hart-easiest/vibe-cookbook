@@ -530,8 +530,8 @@
       }
     }
 
-    // Video embed
-    if (recipe.type === 'video' && recipe.content?.url) {
+    // Video embed or external link card
+    if ((recipe.type === 'video' || recipe.type === 'link') && recipe.content?.url) {
       contentHtml += getVideoEmbed(recipe.content);
     }
 
@@ -581,8 +581,14 @@
       `;
     }
 
-    // Link button
-    if (recipe.content?.url) {
+    // Link button - only show if not already shown in video embed / external card
+    // For video types like instagram/youtube or external recipe sites, the button is already in the embed
+    const url = recipe.content?.url;
+    const isVideoEmbed = url && (url.includes('instagram.com') || url.includes('youtube.com') || url.includes('youtu.be'));
+    const isExternalSite = url && !isVideoEmbed && !url.includes('facebook.com') && !url.includes('tiktok.com') && (recipe.type === 'video' || recipe.type === 'link');
+
+    // Only show link button for video fallbacks (facebook, tiktok) or if no embed was shown
+    if (recipe.content?.url && !isVideoEmbed && !isExternalSite) {
       contentHtml += `
         <a href="${recipe.content.url}" target="_blank" rel="noopener" class="open-link-btn">
           🔗 פתח קישור מקורי
@@ -600,6 +606,56 @@
 
     modal.classList.add('active');
     document.body.style.overflow = 'hidden';
+  }
+
+  // Known recipe websites with branding
+  const KNOWN_RECIPE_SITES = {
+    'oogio.net': { name: 'אוגיו', icon: '🍳', color: '#e74c3c' },
+    'heninthekitchen.com': { name: 'תרנגולת במטבח', icon: '🐔', color: '#f39c12' },
+    'lichtenstadt.com': { name: 'ליכטנשטט', icon: '👨‍🍳', color: '#9b59b6' },
+    'carine.co.il': { name: 'קארין גורן', icon: '🧁', color: '#e91e63' },
+    'bakery365.co.il': { name: 'בייקרי 365', icon: '🥐', color: '#795548' },
+    'hashulchan.co.il': { name: 'השולחן', icon: '🍽️', color: '#2196f3' },
+    'foodish.co.il': { name: 'פודיש', icon: '🥗', color: '#4caf50' },
+    '10dakot.co.il': { name: '10 דקות', icon: '⏱️', color: '#ff5722' },
+    'sweetmeat.co.il': { name: 'סוויט מיט', icon: '🍖', color: '#8d6e63' },
+    'gilmoran.com': { name: 'גיל מורן', icon: '🎂', color: '#673ab7' },
+    'thekitchn.com': { name: 'The Kitchn', icon: '🏠', color: '#00bcd4' },
+    'seriouseats.com': { name: 'Serious Eats', icon: '🔬', color: '#f44336' },
+    'bonappetit.com': { name: 'Bon Appétit', icon: '✨', color: '#ffeb3b' },
+    'allrecipes.com': { name: 'Allrecipes', icon: '📖', color: '#ff9800' },
+    'tasty.co': { name: 'Tasty', icon: '🎬', color: '#1abc9c' },
+    'delish.com': { name: 'Delish', icon: '😋', color: '#e91e63' }
+  };
+
+  // Get domain from URL
+  function getDomainFromUrl(url) {
+    try {
+      const hostname = new URL(url).hostname;
+      return hostname.replace(/^www\./, '');
+    } catch {
+      return null;
+    }
+  }
+
+  // Get recipe site info
+  function getRecipeSiteInfo(url) {
+    const domain = getDomainFromUrl(url);
+    if (!domain) return null;
+
+    // Check for exact match
+    if (KNOWN_RECIPE_SITES[domain]) {
+      return { ...KNOWN_RECIPE_SITES[domain], domain };
+    }
+
+    // Check for partial match (subdomains)
+    for (const [siteDomain, info] of Object.entries(KNOWN_RECIPE_SITES)) {
+      if (domain.includes(siteDomain)) {
+        return { ...info, domain };
+      }
+    }
+
+    return { domain, name: domain, icon: '🔗', color: '#6b7280' };
   }
 
   // Get video embed HTML
@@ -662,7 +718,33 @@
       `;
     }
 
-    // Generic fallback
+    // Check for known recipe websites
+    const siteInfo = getRecipeSiteInfo(url);
+    if (siteInfo && !siteInfo.domain.includes('instagram') && !siteInfo.domain.includes('youtube') && !siteInfo.domain.includes('facebook') && !siteInfo.domain.includes('tiktok')) {
+      return `
+        <div class="external-recipe-card" style="--site-color: ${siteInfo.color}">
+          <div class="external-recipe-header">
+            <span class="external-recipe-icon">${siteInfo.icon}</span>
+            <div class="external-recipe-source">
+              <span class="external-recipe-site-name">${siteInfo.name}</span>
+              <span class="external-recipe-domain">${siteInfo.domain}</span>
+            </div>
+          </div>
+          <div class="external-recipe-body">
+            <p class="external-recipe-hint">
+              💡 לחצי על הכפתור למטה כדי לצפות במתכון המלא באתר המקור.
+              <br>
+              <span class="hint-secondary">תוכלי להעתיק את המתכון ולהדביק אותו בשדה "העלאת טקסט ידנית" כדי שהוא יהיה זמין לחיפוש.</span>
+            </p>
+          </div>
+          <a href="${url}" target="_blank" rel="noopener" class="external-recipe-btn">
+            🔗 פתח מתכון באתר ${siteInfo.name}
+          </a>
+        </div>
+      `;
+    }
+
+    // Generic fallback for videos
     return `
       <div class="video-fallback">
         <div class="video-fallback-icon">🎬</div>

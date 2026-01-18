@@ -1363,6 +1363,107 @@ body {
   margin-bottom: 20px;
 }
 
+/* External Recipe Card */
+.external-recipe-card {
+  background: linear-gradient(135deg, var(--bg-secondary), var(--card-bg));
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  margin-bottom: 20px;
+  border: 1px solid var(--border-color);
+  border-right: 4px solid var(--site-color, var(--accent-color));
+}
+
+.external-recipe-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.external-recipe-icon {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--site-color, var(--accent-color));
+  border-radius: 12px;
+  font-size: 1.75rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.external-recipe-source {
+  display: flex;
+  flex-direction: column;
+}
+
+.external-recipe-site-name {
+  font-family: var(--font-accent);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.external-recipe-domain {
+  font-size: 0.85rem;
+  color: var(--text-light);
+  direction: ltr;
+  text-align: right;
+}
+
+.external-recipe-body {
+  margin-bottom: 20px;
+}
+
+.external-recipe-hint {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+.external-recipe-hint .hint-secondary {
+  display: block;
+  margin-top: 8px;
+  font-size: 0.85rem;
+  color: var(--text-light);
+}
+
+.external-recipe-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 28px;
+  background: var(--site-color, var(--accent-color));
+  color: white;
+  border: none;
+  border-radius: 30px;
+  font-size: 0.95rem;
+  font-family: var(--font-body);
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.external-recipe-btn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* Dark mode for external recipe card */
+@media (prefers-color-scheme: dark) {
+  .external-recipe-card {
+    background: linear-gradient(135deg, var(--bg-secondary), var(--card-bg));
+    border-color: var(--border-color);
+  }
+
+  .external-recipe-icon {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+}
+
 /* Print styles */
 @media print {
   .app-header,
