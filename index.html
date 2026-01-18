@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>ספר המתכונים של טל</title>
+
+  <!-- PWA / iOS Home Screen -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="המתכונים שלי">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📖</text></svg>">
+  <meta name="theme-color" content="#f8f4f0">
+
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <h1>ספר המתכונים של טל</h1>
+      <div class="search-container">
+        <input type="search" id="search-input" placeholder="חיפוש מתכונים..." autocomplete="off">
+        <button id="clear-search" class="clear-btn" aria-label="נקה חיפוש">&times;</button>
+      </div>
+    </header>
+
+    <!-- Categories Navigation -->
+    <nav class="categories-nav" id="categories-nav">
+      <button class="category-btn active" data-category="all">
+        <span class="category-icon">📚</span>
+        <span class="category-name">הכל</span>
+      </button>
+      <!-- Categories will be populated by JS -->
+    </nav>
+
+    <!-- Recipe Count -->
+    <div class="recipe-count" id="recipe-count"></div>
+
+    <!-- Main Content -->
+    <main class="recipes-container" id="recipes-container">
+      <!-- Recipes will be populated by JS -->
+    </main>
+
+    <!-- Recipe Modal -->
+    <div class="modal" id="recipe-modal">
+      <div class="modal-content">
+        <button class="modal-close" id="modal-close">&times;</button>
+        <div class="modal-body" id="modal-body">
+          <!-- Recipe details will be populated by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading State -->
+    <div class="loading" id="loading">
+      <div class="loading-spinner"></div>
+      <p>טוען מתכונים...</p>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
