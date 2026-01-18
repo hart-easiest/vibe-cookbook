@@ -20,7 +20,9 @@
   // State
   let recipes = [];
   let categories = [];
-  let currentCategory = 'all';
+  let currentMainCategory = 'all';
+  let currentSubCategory = 'all';
+  let currentTags = [];
   let searchQuery = '';
   let currentRecipeId = null;
   let currentFormTab = 'link';
@@ -28,19 +30,77 @@
   let selectedImages = []; // For image upload in add recipe form
   let modalSelectedImages = []; // For image upload in existing recipe modal
 
-  // Categories definition
-  const CATEGORIES = [
-    { id: 'desserts', name: 'קינוחים ועוגות', icon: '🍰' },
-    { id: 'cookies', name: 'עוגיות', icon: '🍪' },
-    { id: 'main', name: 'מנות עיקריות', icon: '🍲' },
-    { id: 'baby', name: 'אוכל לתינוקות', icon: '👶' },
-    { id: 'breakfast', name: 'ארוחת בוקר', icon: '🍳' },
-    { id: 'yeast', name: 'מאפי שמרים', icon: '🥐' },
-    { id: 'soups', name: 'מרקים', icon: '🥣' },
-    { id: 'salads', name: 'סלטים ותוספות', icon: '🥗' },
-    { id: 'muffins', name: 'מאפינס', icon: '🧁' },
-    { id: 'savory', name: 'מאפים מלוחים', icon: '🥧' },
-    { id: 'spreads', name: 'ממרחים ורטבים', icon: '🫙' }
+  // Main category hierarchy
+  const MAIN_CATEGORIES = [
+    { id: 'breakfast', name: 'ארוחת בוקר', icon: '🌅' },
+    { id: 'lunch-dinner', name: 'צהריים וערב', icon: '🍽️' },
+    { id: 'dessert', name: 'קינוח', icon: '🍰' },
+    { id: 'snacks', name: 'חטיפים ונשנושים', icon: '🥨' },
+    { id: 'baby', name: 'אוכל לתינוקות', icon: '👶' }
+  ];
+
+  // Sub-categories mapped to main categories
+  const SUB_CATEGORIES = {
+    'breakfast': [
+      { id: 'pancakes', name: 'פנקייקים ווופלים', icon: '🥞' },
+      { id: 'granola', name: 'גרנולה ודגנים', icon: '🥣' },
+      { id: 'eggs', name: 'ביצים ואומלטים', icon: '🍳' },
+      { id: 'yeast-breakfast', name: 'מאפים מתוקים', icon: '🥐' }
+    ],
+    'lunch-dinner': [
+      { id: 'main', name: 'מנות עיקריות', icon: '🍲' },
+      { id: 'soups', name: 'מרקים', icon: '🥣' },
+      { id: 'salads', name: 'סלטים ותוספות', icon: '🥗' },
+      { id: 'savory', name: 'מאפים מלוחים', icon: '🥧' },
+      { id: 'pasta', name: 'פסטות', icon: '🍝' },
+      { id: 'spreads', name: 'ממרחים ורטבים', icon: '🫙' }
+    ],
+    'dessert': [
+      { id: 'desserts', name: 'עוגות וקינוחים', icon: '🎂' },
+      { id: 'cookies', name: 'עוגיות', icon: '🍪' },
+      { id: 'yeast', name: 'מאפי שמרים', icon: '🥐' },
+      { id: 'muffins', name: 'מאפינס', icon: '🧁' }
+    ],
+    'snacks': [
+      { id: 'sweet-snacks', name: 'חטיפים מתוקים', icon: '🍫' },
+      { id: 'savory-snacks', name: 'חטיפים מלוחים', icon: '🥨' }
+    ],
+    'baby': [
+      { id: 'baby-meals', name: 'ארוחות לתינוקות', icon: '🍼' },
+      { id: 'baby-snacks', name: 'חטיפים לתינוקות', icon: '🍌' }
+    ]
+  };
+
+  // Legacy categories mapping to new structure
+  const LEGACY_CATEGORY_MAP = {
+    'desserts': { main: 'dessert', sub: 'desserts' },
+    'cookies': { main: 'dessert', sub: 'cookies' },
+    'main': { main: 'lunch-dinner', sub: 'main' },
+    'baby': { main: 'baby', sub: 'baby-meals' },
+    'breakfast': { main: 'breakfast', sub: 'pancakes' },
+    'yeast': { main: 'dessert', sub: 'yeast' },
+    'soups': { main: 'lunch-dinner', sub: 'soups' },
+    'salads': { main: 'lunch-dinner', sub: 'salads' },
+    'muffins': { main: 'dessert', sub: 'muffins' },
+    'savory': { main: 'lunch-dinner', sub: 'savory' },
+    'spreads': { main: 'lunch-dinner', sub: 'spreads' }
+  };
+
+  // All sub-categories flattened for backward compatibility
+  const CATEGORIES = Object.values(SUB_CATEGORIES).flat();
+
+  // Tags definition
+  const AVAILABLE_TAGS = [
+    { id: 'vegetarian', name: 'צמחוני', icon: '🥬', color: '#22c55e' },
+    { id: 'vegan', name: 'טבעוני', icon: '🌱', color: '#16a34a' },
+    { id: 'gluten-free', name: 'ללא גלוטן', icon: '🌾', color: '#eab308' },
+    { id: 'dairy-free', name: 'ללא חלב', icon: '🥛', color: '#06b6d4' },
+    { id: 'parve', name: 'פרווה', icon: '✡️', color: '#8b5cf6' },
+    { id: 'quick', name: 'מהיר', icon: '⚡', color: '#f97316' },
+    { id: 'kid-friendly', name: 'לילדים', icon: '👶', color: '#ec4899' },
+    { id: 'healthy', name: 'בריא', icon: '💚', color: '#10b981' },
+    { id: 'comfort-food', name: 'אוכל נוחות', icon: '🏠', color: '#f59e0b' },
+    { id: 'special-occasion', name: 'לאירועים', icon: '🎉', color: '#a855f7' }
   ];
 
   // DOM Elements
@@ -106,6 +166,7 @@
       await loadRecipes();
 
       renderCategories();
+      renderTagFilters();
       populateCategorySelect();
       renderRecipes();
       setupEventListeners();
@@ -180,21 +241,136 @@
     }, 3000);
   }
 
-  // Render categories
+  // Render main categories
   function renderCategories() {
-    const existingBtns = categoriesNav.querySelectorAll('.category-btn:not([data-category="all"])');
-    existingBtns.forEach(btn => btn.remove());
+    categoriesNav.innerHTML = `
+      <button class="category-btn main-cat ${currentMainCategory === 'all' ? 'active' : ''}" data-main-category="all">
+        <span class="category-icon">📚</span>
+        <span class="category-name">הכל</span>
+      </button>
+    `;
 
-    categories.forEach(cat => {
+    MAIN_CATEGORIES.forEach(cat => {
       const btn = document.createElement('button');
-      btn.className = 'category-btn';
-      btn.dataset.category = cat.id;
+      btn.className = `category-btn main-cat ${currentMainCategory === cat.id ? 'active' : ''}`;
+      btn.dataset.mainCategory = cat.id;
       btn.innerHTML = `
         <span class="category-icon">${cat.icon}</span>
         <span class="category-name">${cat.name}</span>
       `;
       categoriesNav.appendChild(btn);
     });
+
+    renderSubCategories();
+  }
+
+  // Render sub-categories based on selected main category
+  function renderSubCategories() {
+    let subCatNav = document.getElementById('sub-categories-nav');
+
+    if (currentMainCategory === 'all') {
+      if (subCatNav) subCatNav.style.display = 'none';
+      return;
+    }
+
+    if (!subCatNav) {
+      subCatNav = document.createElement('nav');
+      subCatNav.className = 'sub-categories-nav';
+      subCatNav.id = 'sub-categories-nav';
+      categoriesNav.after(subCatNav);
+    }
+
+    subCatNav.style.display = 'flex';
+    subCatNav.innerHTML = `
+      <button class="sub-category-btn ${currentSubCategory === 'all' ? 'active' : ''}" data-sub-category="all">
+        הכל
+      </button>
+    `;
+
+    const subCats = SUB_CATEGORIES[currentMainCategory] || [];
+    subCats.forEach(cat => {
+      const btn = document.createElement('button');
+      btn.className = `sub-category-btn ${currentSubCategory === cat.id ? 'active' : ''}`;
+      btn.dataset.subCategory = cat.id;
+      btn.innerHTML = `${cat.icon} ${cat.name}`;
+      subCatNav.appendChild(btn);
+    });
+  }
+
+  // Get main category for a recipe (handles legacy mapping)
+  function getRecipeMainCategory(recipe) {
+    const legacyMapping = LEGACY_CATEGORY_MAP[recipe.category];
+    if (legacyMapping) return legacyMapping.main;
+    return recipe.mainCategory || 'lunch-dinner';
+  }
+
+  // Get sub category for a recipe
+  function getRecipeSubCategory(recipe) {
+    const legacyMapping = LEGACY_CATEGORY_MAP[recipe.category];
+    if (legacyMapping) return legacyMapping.sub;
+    return recipe.category;
+  }
+
+  // Auto-tag recipes based on content
+  function autoTagRecipe(recipe) {
+    const tags = [];
+    const name = (recipe.name || '').toLowerCase();
+    const text = (recipe.content?.text || '').toLowerCase();
+    const transcription = (recipe.content?.transcription || '').toLowerCase();
+    const notes = (recipe.notes || '').toLowerCase();
+    const combined = `${name} ${text} ${transcription} ${notes}`;
+
+    // Vegetarian indicators
+    const vegetarianKeywords = ['צמחוני', 'ירקות', 'גבינה', 'ביצה', 'חלבי', 'גבינות', 'טופו', 'פטריות'];
+    const meatKeywords = ['עוף', 'בשר', 'פרגית', 'סלמון', 'דג', 'הודו', 'אסאדו', 'שניצל', 'קציצות בשר', 'בולונז'];
+
+    const hasMeat = meatKeywords.some(k => combined.includes(k));
+    const hasVegetarian = vegetarianKeywords.some(k => combined.includes(k));
+
+    if (!hasMeat && hasVegetarian) tags.push('vegetarian');
+
+    // Vegan indicators
+    const veganKeywords = ['טבעוני', 'vegan', 'ללא מוצרי חלב', 'שמנת צמחית', 'חלב שקדים', 'חלב קוקוס'];
+    if (veganKeywords.some(k => combined.includes(k))) tags.push('vegan');
+
+    // Gluten-free
+    const glutenFreeKeywords = ['ללא גלוטן', 'gluten free', 'gluten-free', 'שיבולת שועל ללא גלוטן'];
+    if (glutenFreeKeywords.some(k => combined.includes(k))) tags.push('gluten-free');
+
+    // Parve (dairy-free but not vegan)
+    const parveKeywords = ['פרווה', 'parve', 'pareve'];
+    if (parveKeywords.some(k => combined.includes(k))) tags.push('parve');
+
+    // Kid-friendly (baby food category or mentions kids)
+    if (recipe.category === 'baby' || combined.includes('ילדים') || combined.includes('תינוק')) {
+      tags.push('kid-friendly');
+    }
+
+    // Quick recipes
+    const quickKeywords = ['מהיר', 'קל', '10 דקות', '15 דקות', 'פשוט'];
+    if (quickKeywords.some(k => combined.includes(k))) tags.push('quick');
+
+    // Healthy
+    const healthyKeywords = ['בריא', 'קינואה', 'עדשים', 'סלט', 'ירקות', 'דל קלוריות'];
+    if (healthyKeywords.some(k => combined.includes(k)) && !combined.includes('שוקולד')) {
+      tags.push('healthy');
+    }
+
+    return tags;
+  }
+
+  // Render tag filter pills
+  function renderTagFilters() {
+    const container = document.getElementById('tags-filter-pills');
+    if (!container) return;
+
+    container.innerHTML = AVAILABLE_TAGS.map(tag => `
+      <button class="tag-filter-pill ${currentTags.includes(tag.id) ? 'active' : ''}"
+              data-tag="${tag.id}"
+              style="--tag-color: ${tag.color}">
+        ${tag.icon} ${tag.name}
+      </button>
+    `).join('');
   }
 
   // Populate category select in form
@@ -208,18 +384,39 @@
   // Get filtered recipes
   function getFilteredRecipes() {
     return recipes.filter(recipe => {
-      const categoryMatch = currentCategory === 'all' || recipe.category === currentCategory;
+      // Main category match
+      let mainCatMatch = currentMainCategory === 'all';
+      if (!mainCatMatch) {
+        const recipeMainCat = getRecipeMainCategory(recipe);
+        mainCatMatch = recipeMainCat === currentMainCategory;
+      }
 
+      // Sub category match
+      let subCatMatch = currentSubCategory === 'all';
+      if (!subCatMatch && mainCatMatch) {
+        const recipeSubCat = getRecipeSubCategory(recipe);
+        subCatMatch = recipeSubCat === currentSubCategory;
+      }
+
+      // Tag match
+      let tagMatch = currentTags.length === 0;
+      if (!tagMatch) {
+        const recipeTags = recipe.tags || autoTagRecipe(recipe);
+        tagMatch = currentTags.every(tag => recipeTags.includes(tag));
+      }
+
+      // Search match
       let searchMatch = true;
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
         const nameMatch = recipe.name?.toLowerCase().includes(query);
         const notesMatch = recipe.notes?.toLowerCase().includes(query);
         const textMatch = recipe.content?.text?.toLowerCase().includes(query);
-        searchMatch = nameMatch || notesMatch || textMatch;
+        const transcriptionMatch = recipe.content?.transcription?.toLowerCase().includes(query);
+        searchMatch = nameMatch || notesMatch || textMatch || transcriptionMatch;
       }
 
-      return categoryMatch && searchMatch;
+      return mainCatMatch && subCatMatch && tagMatch && searchMatch;
     });
   }
 
@@ -227,9 +424,18 @@
   function renderRecipes() {
     const filtered = getFilteredRecipes();
 
-    const categoryName = currentCategory === 'all'
-      ? 'הכל'
-      : categories.find(c => c.id === currentCategory)?.name || '';
+    // Build category name for display
+    let categoryName = '';
+    if (currentMainCategory === 'all') {
+      categoryName = 'הכל';
+    } else {
+      const mainCat = MAIN_CATEGORIES.find(c => c.id === currentMainCategory);
+      categoryName = mainCat?.name || '';
+      if (currentSubCategory !== 'all') {
+        const subCat = (SUB_CATEGORIES[currentMainCategory] || []).find(c => c.id === currentSubCategory);
+        if (subCat) categoryName = subCat.name;
+      }
+    }
     recipeCount.textContent = `${filtered.length} מתכונים ${categoryName ? 'ב' + categoryName : ''}`;
 
     if (filtered.length === 0) {
@@ -243,13 +449,22 @@
     }
 
     recipesContainer.innerHTML = filtered.map(recipe => {
-      const category = categories.find(c => c.id === recipe.category);
+      const subCatId = getRecipeSubCategory(recipe);
+      const category = CATEGORIES.find(c => c.id === subCatId) ||
+                       CATEGORIES.find(c => c.id === recipe.category);
       const type = typeInfo[recipe.type] || typeInfo.link;
       const hasLocalImage = recipe.content?.images && recipe.content.images.length > 0;
       const hasUploadedImage = recipe.content?.uploadedImages && recipe.content.uploadedImages.length > 0;
       const localImageFile = hasLocalImage ? recipe.content.images[0] : null;
       const uploadedImageUrl = hasUploadedImage ? recipe.content.uploadedImages[0] : null;
       const isDocx = localImageFile && localImageFile.endsWith('.docx');
+
+      // Get tags
+      const recipeTags = recipe.tags || autoTagRecipe(recipe);
+      const tagHtml = recipeTags.slice(0, 3).map(tagId => {
+        const tag = AVAILABLE_TAGS.find(t => t.id === tagId);
+        return tag ? `<span class="recipe-tag-pill" style="background: ${tag.color}20; color: ${tag.color};" title="${tag.name}">${tag.icon}</span>` : '';
+      }).join('');
 
       let imageHtml;
       if (uploadedImageUrl) {
@@ -269,6 +484,7 @@
               <span class="recipe-tag type-${recipe.type}">${type.icon} ${type.label}</span>
               <span class="recipe-tag">${category?.icon || ''} ${category?.name || ''}</span>
             </div>
+            ${tagHtml ? `<div class="recipe-tags">${tagHtml}</div>` : ''}
           </div>
         </article>
       `;
@@ -956,15 +1172,46 @@
 
   // Setup event listeners
   function setupEventListeners() {
-    // Category buttons
+    // Main category buttons
     categoriesNav.addEventListener('click', (e) => {
       const btn = e.target.closest('.category-btn');
       if (!btn) return;
 
-      categoriesNav.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
+      const mainCat = btn.dataset.mainCategory;
+      if (mainCat !== undefined) {
+        currentMainCategory = mainCat;
+        currentSubCategory = 'all';
+        renderCategories();
+        renderRecipes();
+      }
+    });
 
-      currentCategory = btn.dataset.category;
+    // Sub category buttons (using event delegation on document)
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('.sub-category-btn');
+      if (!btn) return;
+
+      const subCat = btn.dataset.subCategory;
+      if (subCat !== undefined) {
+        currentSubCategory = subCat;
+        document.querySelectorAll('.sub-category-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        renderRecipes();
+      }
+    });
+
+    // Tag filter buttons
+    document.getElementById('tags-filter-pills')?.addEventListener('click', (e) => {
+      const btn = e.target.closest('.tag-filter-pill');
+      if (!btn) return;
+
+      const tagId = btn.dataset.tag;
+      if (currentTags.includes(tagId)) {
+        currentTags = currentTags.filter(t => t !== tagId);
+      } else {
+        currentTags.push(tagId);
+      }
+      renderTagFilters();
       renderRecipes();
     });
 
