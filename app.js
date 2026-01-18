@@ -15,7 +15,7 @@
   // Initialize Firebase
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
-  const storage = firebase.storage();
+  // Storage removed - requires paid Firebase plan
   const auth = firebase.auth();
 
   // Allowed email addresses that can edit recipes
@@ -40,8 +40,7 @@
   let currentRecipeId = null;
   let currentFormTab = 'link';
   let isInitialized = false;
-  let selectedImages = []; // For image upload in add recipe form
-  let modalSelectedImages = []; // For image upload in existing recipe modal
+  // Image upload removed - requires paid Firebase plan
 
   // Main category hierarchy
   const MAIN_CATEGORIES = [
@@ -145,10 +144,7 @@
   const cancelSettingsBtn = document.getElementById('cancel-settings');
   const saveSettingsBtn = document.getElementById('save-settings');
   const openaiKeyInput = document.getElementById('openai-key');
-  const addImageModal = document.getElementById('add-image-modal');
-  const addImageModalClose = document.getElementById('add-image-modal-close');
-  const cancelAddImageBtn = document.getElementById('cancel-add-image');
-  const saveAddImageBtn = document.getElementById('save-add-image');
+  // Image modal elements removed - requires paid Firebase plan
   const editTagsModal = document.getElementById('edit-tags-modal');
   const editTagsModalClose = document.getElementById('edit-tags-modal-close');
   const cancelEditTagsBtn = document.getElementById('cancel-edit-tags');
@@ -721,14 +717,7 @@
       }
     }
 
-    // Add image button (only if can edit)
-    if (canEdit) {
-      contentHtml += `
-        <button class="add-image-btn" data-action="add-image">
-          📷 הוסף תמונה
-        </button>
-      `;
-    }
+    // Add image button removed - requires paid Firebase plan
 
     // Edit tags button (only if can edit)
     if (canEdit) {
@@ -1020,24 +1009,9 @@
       const docRef = await db.collection('recipes').add(newRecipe);
       newRecipe.id = docRef.id;
 
-      // If there are images to upload
-      if (formData.hasImagesToUpload && selectedImages.length > 0) {
-        showToast('מעלה תמונות...', 'info');
-        const imageUrls = await uploadImages(docRef.id);
-        if (imageUrls.length > 0) {
-          newRecipe.content.uploadedImages = imageUrls;
-          await db.collection('recipes').doc(docRef.id).update({
-            'content.uploadedImages': imageUrls
-          });
-        }
-      }
-
       // Update local state
       recipes.unshift(newRecipe);
       renderRecipes();
-
-      // Clear image selection
-      clearImageSelection();
 
       showToast('המתכון נוסף בהצלחה!', 'success');
       closeAddModal();
@@ -1103,353 +1077,8 @@
     return div.innerHTML;
   }
 
-  // Image upload functions
-  function setupImageUpload() {
-    const uploadArea = document.getElementById('image-upload-area');
-    const fileInput = document.getElementById('recipe-images');
-    const placeholder = document.getElementById('upload-placeholder');
-    const previewContainer = document.getElementById('image-preview-container');
-
-    if (!uploadArea || !fileInput) return;
-
-    // Click to upload
-    uploadArea.addEventListener('click', (e) => {
-      if (e.target.closest('.remove-image') || e.target.closest('.add-more-images')) return;
-      fileInput.click();
-    });
-
-    // File selection
-    fileInput.addEventListener('change', (e) => {
-      handleImageSelection(e.target.files);
-    });
-
-    // Drag and drop
-    uploadArea.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      uploadArea.style.borderColor = 'var(--primary-color)';
-    });
-
-    uploadArea.addEventListener('dragleave', () => {
-      uploadArea.style.borderColor = '';
-    });
-
-    uploadArea.addEventListener('drop', (e) => {
-      e.preventDefault();
-      uploadArea.style.borderColor = '';
-      handleImageSelection(e.dataTransfer.files);
-    });
-  }
-
-  function handleImageSelection(files) {
-    const placeholder = document.getElementById('upload-placeholder');
-    const previewContainer = document.getElementById('image-preview-container');
-    const uploadArea = document.getElementById('image-upload-area');
-
-    for (const file of files) {
-      if (!file.type.startsWith('image/')) continue;
-
-      selectedImages.push(file);
-
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const div = document.createElement('div');
-        div.className = 'image-preview-item';
-        div.innerHTML = `
-          <img src="${e.target.result}" alt="Preview">
-          <button type="button" class="remove-image" data-index="${selectedImages.length - 1}">&times;</button>
-        `;
-        previewContainer.appendChild(div);
-      };
-      reader.readAsDataURL(file);
-    }
-
-    updateImagePreviewUI();
-  }
-
-  function updateImagePreviewUI() {
-    const placeholder = document.getElementById('upload-placeholder');
-    const previewContainer = document.getElementById('image-preview-container');
-    const uploadArea = document.getElementById('image-upload-area');
-
-    if (selectedImages.length > 0) {
-      placeholder.style.display = 'none';
-      uploadArea.classList.add('has-images');
-
-      // Add "add more" button if not exists
-      if (!previewContainer.querySelector('.add-more-images')) {
-        const addMore = document.createElement('div');
-        addMore.className = 'add-more-images';
-        addMore.innerHTML = '+';
-        addMore.addEventListener('click', (e) => {
-          e.stopPropagation();
-          document.getElementById('recipe-images').click();
-        });
-        previewContainer.appendChild(addMore);
-      }
-    } else {
-      placeholder.style.display = 'flex';
-      uploadArea.classList.remove('has-images');
-      previewContainer.innerHTML = '';
-    }
-  }
-
-  function removeImage(index) {
-    selectedImages.splice(index, 1);
-
-    // Rebuild preview
-    const previewContainer = document.getElementById('image-preview-container');
-    previewContainer.innerHTML = '';
-
-    selectedImages.forEach((file, i) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const div = document.createElement('div');
-        div.className = 'image-preview-item';
-        div.innerHTML = `
-          <img src="${e.target.result}" alt="Preview">
-          <button type="button" class="remove-image" data-index="${i}">&times;</button>
-        `;
-        previewContainer.appendChild(div);
-        updateImagePreviewUI();
-      };
-      reader.readAsDataURL(file);
-    });
-
-    if (selectedImages.length === 0) {
-      updateImagePreviewUI();
-    }
-  }
-
-  async function uploadImages(recipeId) {
-    const uploadedUrls = [];
-
-    for (let i = 0; i < selectedImages.length; i++) {
-      const file = selectedImages[i];
-      const ext = file.name.split('.').pop();
-      const filename = `${recipeId}_${Date.now()}_${i}.${ext}`;
-      const storageRef = storage.ref(`recipe-images/${filename}`);
-
-      try {
-        const snapshot = await storageRef.put(file);
-        const url = await snapshot.ref.getDownloadURL();
-        uploadedUrls.push(url);
-      } catch (error) {
-        console.error('Image upload failed:', error);
-      }
-    }
-
-    return uploadedUrls;
-  }
-
-  function clearImageSelection() {
-    selectedImages = [];
-    const previewContainer = document.getElementById('image-preview-container');
-    const placeholder = document.getElementById('upload-placeholder');
-    const uploadArea = document.getElementById('image-upload-area');
-
-    if (previewContainer) previewContainer.innerHTML = '';
-    if (placeholder) placeholder.style.display = 'flex';
-    if (uploadArea) uploadArea.classList.remove('has-images');
-
-    const fileInput = document.getElementById('recipe-images');
-    if (fileInput) fileInput.value = '';
-  }
-
-  // Modal image upload functions (for adding to existing recipes)
-  function setupModalImageUpload() {
-    const uploadArea = document.getElementById('modal-image-upload-area');
-    const fileInput = document.getElementById('modal-recipe-images');
-
-    if (!uploadArea || !fileInput) return;
-
-    uploadArea.addEventListener('click', (e) => {
-      if (e.target.closest('.remove-image') || e.target.closest('.add-more-images')) return;
-      fileInput.click();
-    });
-
-    fileInput.addEventListener('change', (e) => {
-      handleModalImageSelection(e.target.files);
-    });
-
-    uploadArea.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      uploadArea.style.borderColor = 'var(--primary-color)';
-    });
-
-    uploadArea.addEventListener('dragleave', () => {
-      uploadArea.style.borderColor = '';
-    });
-
-    uploadArea.addEventListener('drop', (e) => {
-      e.preventDefault();
-      uploadArea.style.borderColor = '';
-      handleModalImageSelection(e.dataTransfer.files);
-    });
-  }
-
-  function handleModalImageSelection(files) {
-    const placeholder = document.getElementById('modal-upload-placeholder');
-    const previewContainer = document.getElementById('modal-image-preview-container');
-    const uploadArea = document.getElementById('modal-image-upload-area');
-
-    for (const file of files) {
-      if (!file.type.startsWith('image/')) continue;
-
-      modalSelectedImages.push(file);
-
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const div = document.createElement('div');
-        div.className = 'image-preview-item';
-        div.innerHTML = `
-          <img src="${e.target.result}" alt="Preview">
-          <button type="button" class="remove-image modal-remove" data-index="${modalSelectedImages.length - 1}">&times;</button>
-        `;
-        previewContainer.appendChild(div);
-      };
-      reader.readAsDataURL(file);
-    }
-
-    updateModalImagePreviewUI();
-  }
-
-  function updateModalImagePreviewUI() {
-    const placeholder = document.getElementById('modal-upload-placeholder');
-    const previewContainer = document.getElementById('modal-image-preview-container');
-    const uploadArea = document.getElementById('modal-image-upload-area');
-
-    if (modalSelectedImages.length > 0) {
-      placeholder.style.display = 'none';
-      uploadArea.classList.add('has-images');
-
-      if (!previewContainer.querySelector('.add-more-images')) {
-        const addMore = document.createElement('div');
-        addMore.className = 'add-more-images';
-        addMore.innerHTML = '+';
-        addMore.addEventListener('click', (e) => {
-          e.stopPropagation();
-          document.getElementById('modal-recipe-images').click();
-        });
-        previewContainer.appendChild(addMore);
-      }
-    } else {
-      placeholder.style.display = 'flex';
-      uploadArea.classList.remove('has-images');
-      previewContainer.innerHTML = '';
-    }
-  }
-
-  function removeModalImage(index) {
-    modalSelectedImages.splice(index, 1);
-
-    const previewContainer = document.getElementById('modal-image-preview-container');
-    previewContainer.innerHTML = '';
-
-    modalSelectedImages.forEach((file, i) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const div = document.createElement('div');
-        div.className = 'image-preview-item';
-        div.innerHTML = `
-          <img src="${e.target.result}" alt="Preview">
-          <button type="button" class="remove-image modal-remove" data-index="${i}">&times;</button>
-        `;
-        previewContainer.appendChild(div);
-        updateModalImagePreviewUI();
-      };
-      reader.readAsDataURL(file);
-    });
-
-    if (modalSelectedImages.length === 0) {
-      updateModalImagePreviewUI();
-    }
-  }
-
-  function clearModalImageSelection() {
-    modalSelectedImages = [];
-    const previewContainer = document.getElementById('modal-image-preview-container');
-    const placeholder = document.getElementById('modal-upload-placeholder');
-    const uploadArea = document.getElementById('modal-image-upload-area');
-
-    if (previewContainer) previewContainer.innerHTML = '';
-    if (placeholder) placeholder.style.display = 'flex';
-    if (uploadArea) uploadArea.classList.remove('has-images');
-
-    const fileInput = document.getElementById('modal-recipe-images');
-    if (fileInput) fileInput.value = '';
-  }
-
-  function openAddImageModal() {
-    clearModalImageSelection();
-    addImageModal.classList.add('active');
-  }
-
-  function closeAddImageModal() {
-    addImageModal.classList.remove('active');
-    clearModalImageSelection();
-  }
-
-  async function saveAddedImages() {
-    if (!canEdit) {
-      showToast('אין לך הרשאה לערוך מתכונים', 'error');
-      return;
-    }
-
-    if (!currentRecipeId || modalSelectedImages.length === 0) {
-      showToast('נא לבחור לפחות תמונה אחת', 'error');
-      return;
-    }
-
-    const saveBtn = saveAddImageBtn;
-    const btnText = saveBtn.querySelector('.btn-text');
-    const btnLoading = saveBtn.querySelector('.btn-loading');
-
-    btnText.style.display = 'none';
-    btnLoading.style.display = 'inline';
-    saveBtn.disabled = true;
-
-    try {
-      // Upload images
-      const uploadedUrls = [];
-      for (let i = 0; i < modalSelectedImages.length; i++) {
-        const file = modalSelectedImages[i];
-        const ext = file.name.split('.').pop();
-        const filename = `${currentRecipeId}_${Date.now()}_${i}.${ext}`;
-        const storageRef = storage.ref(`recipe-images/${filename}`);
-
-        const snapshot = await storageRef.put(file);
-        const url = await snapshot.ref.getDownloadURL();
-        uploadedUrls.push(url);
-      }
-
-      // Get existing images and merge
-      const recipe = recipes.find(r => r.id === currentRecipeId);
-      const existingImages = recipe.content?.uploadedImages || [];
-      const allImages = [...existingImages, ...uploadedUrls];
-
-      // Update Firestore
-      await db.collection('recipes').doc(currentRecipeId).update({
-        'content.uploadedImages': allImages
-      });
-
-      // Update local state
-      if (!recipe.content) recipe.content = {};
-      recipe.content.uploadedImages = allImages;
-
-      showToast('התמונות נוספו בהצלחה!', 'success');
-      closeAddImageModal();
-
-      // Refresh the recipe modal
-      openRecipe(currentRecipeId);
-    } catch (error) {
-      console.error('Save images failed:', error);
-      showToast('שגיאה בשמירת התמונות', 'error');
-    }
-
-    btnText.style.display = 'inline';
-    btnLoading.style.display = 'none';
-    saveBtn.disabled = false;
-  }
+  // Image upload functions removed - requires paid Firebase plan
+  // Note: Existing uploaded images from Firebase Storage will still display
 
   // Setup event listeners
   function setupEventListeners() {
@@ -1553,19 +1182,7 @@
     addModalClose.addEventListener('click', closeAddModal);
     cancelAddBtn.addEventListener('click', closeAddModal);
 
-    // Image upload setup
-    setupImageUpload();
-
-    // Remove image button
-    document.addEventListener('click', (e) => {
-      const removeBtn = e.target.closest('.remove-image');
-      if (removeBtn) {
-        e.preventDefault();
-        e.stopPropagation();
-        const index = parseInt(removeBtn.dataset.index);
-        removeImage(index);
-      }
-    });
+    // Image upload removed - requires paid Firebase plan
 
     addModal.addEventListener('click', (e) => {
       if (e.target === addModal) closeAddModal();
@@ -1594,10 +1211,7 @@
       document.getElementById('recipe-category').value = category;
     });
 
-    document.getElementById('recipe-name-image').addEventListener('input', (e) => {
-      const category = autoCategorize(e.target.value);
-      document.getElementById('recipe-category').value = category;
-    });
+    // Image name input removed - requires paid Firebase plan
 
     // Form submit
     addRecipeForm.addEventListener('submit', async (e) => {
@@ -1644,31 +1258,8 @@
           },
           notes: document.getElementById('recipe-notes').value.trim()
         };
-      } else if (currentFormTab === 'image') {
-        const name = document.getElementById('recipe-name-image').value.trim();
-        const text = document.getElementById('recipe-text-image').value.trim();
-
-        if (!name) {
-          showToast('נא להזין שם המתכון', 'error');
-          return;
-        }
-
-        if (selectedImages.length === 0) {
-          showToast('נא להעלות לפחות תמונה אחת', 'error');
-          return;
-        }
-
-        formData = {
-          name: name,
-          category: document.getElementById('recipe-category').value,
-          type: 'photo',
-          content: {
-            text: text || ''
-          },
-          notes: document.getElementById('recipe-notes').value.trim(),
-          hasImagesToUpload: true
-        };
       }
+      // Image tab removed - requires paid Firebase plan
 
       await addRecipe(formData);
     });
@@ -1680,8 +1271,6 @@
           closeSettingsModal();
         } else if (editTagsModal.classList.contains('active')) {
           closeEditTagsModal();
-        } else if (addImageModal.classList.contains('active')) {
-          closeAddImageModal();
         } else if (transcriptionModal.classList.contains('active')) {
           closeTranscriptionModal();
         } else if (deleteModal.classList.contains('active')) {
@@ -1709,8 +1298,6 @@
       const action = btn.dataset.action;
       if (action === 'add-transcription' || action === 'edit-transcription') {
         openTranscriptionModal();
-      } else if (action === 'add-image') {
-        openAddImageModal();
       } else if (action === 'edit-tags') {
         openEditTagsModal();
       } else if (action === 'extract-recipe') {
@@ -1718,26 +1305,7 @@
       }
     });
 
-    // Add image modal
-    setupModalImageUpload();
-    addImageModalClose.addEventListener('click', closeAddImageModal);
-    cancelAddImageBtn.addEventListener('click', closeAddImageModal);
-    saveAddImageBtn.addEventListener('click', saveAddedImages);
-
-    addImageModal.addEventListener('click', (e) => {
-      if (e.target === addImageModal) closeAddImageModal();
-    });
-
-    // Handle remove image buttons for modal
-    document.addEventListener('click', (e) => {
-      const removeBtn = e.target.closest('.remove-image.modal-remove');
-      if (removeBtn) {
-        e.preventDefault();
-        e.stopPropagation();
-        const index = parseInt(removeBtn.dataset.index);
-        removeModalImage(index);
-      }
-    });
+    // Add image modal removed - requires paid Firebase plan
 
     // Transcription modal
     transcriptionModalClose.addEventListener('click', closeTranscriptionModal);

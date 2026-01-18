@@ -16,7 +16,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+  <!-- Firebase Storage removed - requires paid plan -->
 
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -84,7 +84,7 @@
           <div class="form-tabs">
             <button class="form-tab active" data-tab="link">קישור</button>
             <button class="form-tab" data-tab="text">טקסט</button>
-            <button class="form-tab" data-tab="image">תמונה</button>
+            <!-- Image tab disabled - requires Firebase Storage (paid plan) -->
           </div>
 
           <form id="add-recipe-form">
@@ -112,28 +112,7 @@
               </div>
             </div>
 
-            <!-- Image Tab -->
-            <div class="form-tab-content" data-tab="image">
-              <div class="form-group">
-                <label for="recipe-name-image">שם המתכון</label>
-                <input type="text" id="recipe-name-image" placeholder="שם המתכון">
-              </div>
-              <div class="form-group">
-                <label for="recipe-images">תמונות המתכון</label>
-                <div class="image-upload-area" id="image-upload-area">
-                  <input type="file" id="recipe-images" accept="image/*" multiple style="display: none;">
-                  <div class="upload-placeholder" id="upload-placeholder">
-                    <span class="upload-icon">📷</span>
-                    <span>לחצי להעלאת תמונות</span>
-                  </div>
-                  <div class="image-preview-container" id="image-preview-container"></div>
-                </div>
-              </div>
-              <div class="form-group">
-                <label for="recipe-text-image">תוכן המתכון (אופציונלי)</label>
-                <textarea id="recipe-text-image" rows="4" placeholder="הכניסי את טקסט המתכון כאן אם יש..."></textarea>
-              </div>
-            </div>
+            <!-- Image Tab removed - requires Firebase Storage (paid plan) -->
 
             <!-- Common Fields -->
             <div class="form-group">
@@ -199,35 +178,7 @@
       </div>
     </div>
 
-    <!-- Add Image Modal -->
-    <div class="modal" id="add-image-modal">
-      <div class="modal-content transcription-modal-content">
-        <button class="modal-close" id="add-image-modal-close">&times;</button>
-        <div class="modal-body">
-          <h2 class="modal-title">📷 הוסף תמונה למתכון</h2>
-          <p class="modal-subtitle">בחרי תמונות להוספה למתכון</p>
-
-          <div class="form-group">
-            <div class="image-upload-area" id="modal-image-upload-area">
-              <input type="file" id="modal-recipe-images" accept="image/*" multiple style="display: none;">
-              <div class="upload-placeholder" id="modal-upload-placeholder">
-                <span class="upload-icon">📷</span>
-                <span>לחצי להעלאת תמונות</span>
-              </div>
-              <div class="image-preview-container" id="modal-image-preview-container"></div>
-            </div>
-          </div>
-
-          <div class="form-actions">
-            <button type="button" class="btn btn-secondary" id="cancel-add-image">ביטול</button>
-            <button type="button" class="btn btn-primary" id="save-add-image">
-              <span class="btn-text">שמור תמונות</span>
-              <span class="btn-loading" style="display:none;">מעלה...</span>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <!-- Add Image Modal removed - requires Firebase Storage (paid plan) -->
 
     <!-- Edit Tags Modal -->
     <div class="modal" id="edit-tags-modal">
