@@ -22,14 +22,14 @@
   --danger-color: #c53030;
   --success-color: #2d8a4e;
 
-  /* Typography */
-  --font-display: 'Heebo', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-body: 'Heebo', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-accent: 'Noto Serif Hebrew', Georgia, serif;
+  /* Typography - Using Rubik (modern Hebrew sans) + Frank Ruhl Libre (elegant Hebrew serif) */
+  --font-display: 'Frank Ruhl Libre', 'David Libre', Georgia, serif;
+  --font-body: 'Rubik', 'Assistant', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-accent: 'Frank Ruhl Libre', 'David Libre', Georgia, serif;
 }
 
-/* Import Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&family=Noto+Serif+Hebrew:wght@400;500;600;700&display=swap');
+/* Import Google Fonts - Better Hebrew typography */
+@import url('https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;500;600;700&family=Rubik:wght@300;400;500;600;700&display=swap');
 
 /* Reset & Base */
 *, *::before, *::after {
@@ -319,6 +319,12 @@ body {
   background: var(--tag-color, var(--accent-color));
   color: white;
   border-color: var(--tag-color, var(--accent-color));
+}
+
+.tag-filter-pill .tag-count {
+  font-size: 0.7rem;
+  opacity: 0.7;
+  margin-right: 2px;
 }
 
 /* Action Bar */
@@ -1361,6 +1367,106 @@ body {
   flex-wrap: wrap;
   gap: 10px;
   margin-bottom: 20px;
+}
+
+/* Tags Editor */
+.tags-editor {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.tag-editor-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--bg-secondary);
+  border: 2px solid transparent;
+  border-radius: 25px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+}
+
+.tag-editor-item:hover {
+  border-color: var(--tag-color, var(--border-color));
+}
+
+.tag-editor-item.selected {
+  background: var(--tag-color, var(--accent-color));
+  color: white;
+  border-color: var(--tag-color, var(--accent-color));
+}
+
+.tag-editor-item .tag-icon {
+  font-size: 1.1rem;
+}
+
+.tag-editor-item .tag-name {
+  font-weight: 500;
+}
+
+/* Edit Tags Button */
+.edit-tags-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: #8b5cf6;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-family: var(--font-body);
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 16px;
+  transition: all 0.2s;
+}
+
+.edit-tags-btn:hover {
+  background: #7c3aed;
+  transform: translateY(-1px);
+}
+
+/* Recipe tags display in modal */
+.recipe-tags-display {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius);
+  margin-bottom: 20px;
+}
+
+.recipe-tags-display .tags-label {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-left: 8px;
+}
+
+.tag-display-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border-radius: 15px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+/* Category hierarchy in recipe cards */
+.recipe-tag.category-hierarchy {
+  font-size: 0.7rem;
+  max-width: 180px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* External Recipe Card */

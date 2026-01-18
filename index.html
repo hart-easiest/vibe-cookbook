@@ -227,6 +227,29 @@
       </div>
     </div>
 
+    <!-- Edit Tags Modal -->
+    <div class="modal" id="edit-tags-modal">
+      <div class="modal-content transcription-modal-content">
+        <button class="modal-close" id="edit-tags-modal-close">&times;</button>
+        <div class="modal-body">
+          <h2 class="modal-title">🏷️ ערוך תגיות</h2>
+          <p class="modal-subtitle">בחרי תגיות למתכון זה</p>
+
+          <div class="tags-editor" id="tags-editor">
+            <!-- Tags will be populated by JS -->
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary" id="cancel-edit-tags">ביטול</button>
+            <button type="button" class="btn btn-primary" id="save-edit-tags">
+              <span class="btn-text">שמור תגיות</span>
+              <span class="btn-loading" style="display:none;">שומר...</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Settings Modal -->
     <div class="modal" id="settings-modal">
       <div class="modal-content settings-modal-content">

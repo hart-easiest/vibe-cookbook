@@ -136,8 +136,16 @@
   const addImageModalClose = document.getElementById('add-image-modal-close');
   const cancelAddImageBtn = document.getElementById('cancel-add-image');
   const saveAddImageBtn = document.getElementById('save-add-image');
+  const editTagsModal = document.getElementById('edit-tags-modal');
+  const editTagsModalClose = document.getElementById('edit-tags-modal-close');
+  const cancelEditTagsBtn = document.getElementById('cancel-edit-tags');
+  const saveEditTagsBtn = document.getElementById('save-edit-tags');
+  const tagsEditor = document.getElementById('tags-editor');
   const loading = document.getElementById('loading');
   const toastContainer = document.getElementById('toast-container');
+
+  // Track selected tags for the editor
+  let editingRecipeTags = [];
 
   // Type icons and labels
   const typeInfo = {
@@ -359,16 +367,32 @@
     return tags;
   }
 
-  // Render tag filter pills
+  // Render tag filter pills - only show tags that have at least one recipe
   function renderTagFilters() {
     const container = document.getElementById('tags-filter-pills');
     if (!container) return;
 
-    container.innerHTML = AVAILABLE_TAGS.map(tag => `
+    // Count recipes per tag
+    const tagCounts = {};
+    AVAILABLE_TAGS.forEach(tag => tagCounts[tag.id] = 0);
+
+    recipes.forEach(recipe => {
+      const recipeTags = recipe.tags || autoTagRecipe(recipe);
+      recipeTags.forEach(tagId => {
+        if (tagCounts[tagId] !== undefined) {
+          tagCounts[tagId]++;
+        }
+      });
+    });
+
+    // Only show tags that have at least one recipe
+    const tagsWithRecipes = AVAILABLE_TAGS.filter(tag => tagCounts[tag.id] > 0);
+
+    container.innerHTML = tagsWithRecipes.map(tag => `
       <button class="tag-filter-pill ${currentTags.includes(tag.id) ? 'active' : ''}"
               data-tag="${tag.id}"
               style="--tag-color: ${tag.color}">
-        ${tag.icon} ${tag.name}
+        ${tag.icon} ${tag.name} <span class="tag-count">(${tagCounts[tag.id]})</span>
       </button>
     `).join('');
   }
@@ -449,9 +473,13 @@
     }
 
     recipesContainer.innerHTML = filtered.map(recipe => {
+      // Get main category and sub-category for display
+      const mainCatId = getRecipeMainCategory(recipe);
       const subCatId = getRecipeSubCategory(recipe);
-      const category = CATEGORIES.find(c => c.id === subCatId) ||
-                       CATEGORIES.find(c => c.id === recipe.category);
+      const mainCat = MAIN_CATEGORIES.find(c => c.id === mainCatId);
+      const subCat = CATEGORIES.find(c => c.id === subCatId) ||
+                     CATEGORIES.find(c => c.id === recipe.category);
+
       const type = typeInfo[recipe.type] || typeInfo.link;
       const hasLocalImage = recipe.content?.images && recipe.content.images.length > 0;
       const hasUploadedImage = recipe.content?.uploadedImages && recipe.content.uploadedImages.length > 0;
@@ -466,13 +494,18 @@
         return tag ? `<span class="recipe-tag-pill" style="background: ${tag.color}20; color: ${tag.color};" title="${tag.name}">${tag.icon}</span>` : '';
       }).join('');
 
+      // Build category display: "Main > Sub" format
+      const categoryDisplay = mainCat && subCat
+        ? `${mainCat.icon} ${mainCat.name} › ${subCat.name}`
+        : (subCat ? `${subCat.icon} ${subCat.name}` : '');
+
       let imageHtml;
       if (uploadedImageUrl) {
-        imageHtml = `<img src="${uploadedImageUrl}" alt="${recipe.name}" class="recipe-image" loading="lazy" onerror="this.classList.add('placeholder'); this.outerHTML='<div class=\\'recipe-image placeholder\\'>${category?.icon || '🍽️'}</div>';">`;
+        imageHtml = `<img src="${uploadedImageUrl}" alt="${recipe.name}" class="recipe-image" loading="lazy" onerror="this.classList.add('placeholder'); this.outerHTML='<div class=\\'recipe-image placeholder\\'>${mainCat?.icon || '🍽️'}</div>';">`;
       } else if (hasLocalImage && !isDocx) {
-        imageHtml = `<img src="images/${localImageFile}" alt="${recipe.name}" class="recipe-image" loading="lazy" onerror="this.classList.add('placeholder'); this.outerHTML='<div class=\\'recipe-image placeholder\\'>${category?.icon || '🍽️'}</div>';">`;
+        imageHtml = `<img src="images/${localImageFile}" alt="${recipe.name}" class="recipe-image" loading="lazy" onerror="this.classList.add('placeholder'); this.outerHTML='<div class=\\'recipe-image placeholder\\'>${mainCat?.icon || '🍽️'}</div>';">`;
       } else {
-        imageHtml = `<div class="recipe-image placeholder">${category?.icon || '🍽️'}</div>`;
+        imageHtml = `<div class="recipe-image placeholder">${mainCat?.icon || subCat?.icon || '🍽️'}</div>`;
       }
 
       return `
@@ -482,7 +515,7 @@
             <h2 class="recipe-name">${recipe.name}</h2>
             <div class="recipe-meta">
               <span class="recipe-tag type-${recipe.type}">${type.icon} ${type.label}</span>
-              <span class="recipe-tag">${category?.icon || ''} ${category?.name || ''}</span>
+              <span class="recipe-tag category-hierarchy">${categoryDisplay}</span>
             </div>
             ${tagHtml ? `<div class="recipe-tags">${tagHtml}</div>` : ''}
           </div>
@@ -569,7 +602,28 @@
       </button>
     `;
 
+    // Edit tags button
+    contentHtml += `
+      <button class="edit-tags-btn" data-action="edit-tags">
+        🏷️ ערוך תגיות
+      </button>
+    `;
+
     contentHtml += `</div>`;
+
+    // Display current tags
+    const recipeTags = recipe.tags || autoTagRecipe(recipe);
+    if (recipeTags.length > 0) {
+      contentHtml += `
+        <div class="recipe-tags-display">
+          <span class="tags-label">תגיות:</span>
+          ${recipeTags.map(tagId => {
+            const tag = AVAILABLE_TAGS.find(t => t.id === tagId);
+            return tag ? `<span class="tag-display-pill" style="background: ${tag.color}20; color: ${tag.color};">${tag.icon} ${tag.name}</span>` : '';
+          }).join('')}
+        </div>
+      `;
+    }
 
     // Notes
     if (recipe.notes) {
@@ -1479,6 +1533,8 @@
       if (e.key === 'Escape') {
         if (settingsModal.classList.contains('active')) {
           closeSettingsModal();
+        } else if (editTagsModal.classList.contains('active')) {
+          closeEditTagsModal();
         } else if (addImageModal.classList.contains('active')) {
           closeAddImageModal();
         } else if (transcriptionModal.classList.contains('active')) {
@@ -1500,7 +1556,7 @@
       }
     });
 
-    // Action buttons in recipe modal (transcription & image)
+    // Action buttons in recipe modal (transcription, image, tags)
     modalBody.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-action]');
       if (!btn) return;
@@ -1510,6 +1566,8 @@
         openTranscriptionModal();
       } else if (action === 'add-image') {
         openAddImageModal();
+      } else if (action === 'edit-tags') {
+        openEditTagsModal();
       }
     });
 
@@ -1541,6 +1599,15 @@
 
     transcriptionModal.addEventListener('click', (e) => {
       if (e.target === transcriptionModal) closeTranscriptionModal();
+    });
+
+    // Edit tags modal
+    editTagsModalClose.addEventListener('click', closeEditTagsModal);
+    cancelEditTagsBtn.addEventListener('click', closeEditTagsModal);
+    saveEditTagsBtn.addEventListener('click', saveEditedTags);
+
+    editTagsModal.addEventListener('click', (e) => {
+      if (e.target === editTagsModal) closeEditTagsModal();
     });
 
     // Settings modal
@@ -1605,6 +1672,82 @@
     } catch (error) {
       console.error('Save transcription failed:', error);
       showToast('שגיאה בשמירת הטקסט', 'error');
+    }
+
+    btnText.style.display = 'inline';
+    btnLoading.style.display = 'none';
+    saveBtn.disabled = false;
+  }
+
+  // Edit tags modal functions
+  function openEditTagsModal() {
+    const recipe = recipes.find(r => r.id === currentRecipeId);
+    if (!recipe) return;
+
+    // Get current tags (either saved or auto-generated)
+    editingRecipeTags = [...(recipe.tags || autoTagRecipe(recipe))];
+
+    // Render the tags editor
+    tagsEditor.innerHTML = AVAILABLE_TAGS.map(tag => `
+      <div class="tag-editor-item ${editingRecipeTags.includes(tag.id) ? 'selected' : ''}"
+           data-tag-id="${tag.id}"
+           style="--tag-color: ${tag.color}">
+        <span class="tag-icon">${tag.icon}</span>
+        <span class="tag-name">${tag.name}</span>
+      </div>
+    `).join('');
+
+    // Add click handlers for tags
+    tagsEditor.querySelectorAll('.tag-editor-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const tagId = item.dataset.tagId;
+        if (editingRecipeTags.includes(tagId)) {
+          editingRecipeTags = editingRecipeTags.filter(t => t !== tagId);
+          item.classList.remove('selected');
+        } else {
+          editingRecipeTags.push(tagId);
+          item.classList.add('selected');
+        }
+      });
+    });
+
+    editTagsModal.classList.add('active');
+  }
+
+  function closeEditTagsModal() {
+    editTagsModal.classList.remove('active');
+    editingRecipeTags = [];
+  }
+
+  async function saveEditedTags() {
+    if (!currentRecipeId) return;
+
+    const saveBtn = saveEditTagsBtn;
+    const btnText = saveBtn.querySelector('.btn-text');
+    const btnLoading = saveBtn.querySelector('.btn-loading');
+
+    btnText.style.display = 'none';
+    btnLoading.style.display = 'inline';
+    saveBtn.disabled = true;
+
+    try {
+      // Update in Firestore
+      const recipe = recipes.find(r => r.id === currentRecipeId);
+      recipe.tags = [...editingRecipeTags];
+
+      await db.collection('recipes').doc(currentRecipeId).update({
+        tags: editingRecipeTags
+      });
+
+      showToast('התגיות נשמרו בהצלחה!', 'success');
+      closeEditTagsModal();
+
+      // Refresh the recipe modal and recipes list
+      openRecipe(currentRecipeId);
+      renderRecipes();
+    } catch (error) {
+      console.error('Save tags failed:', error);
+      showToast('שגיאה בשמירת התגיות', 'error');
     }
 
     btnText.style.display = 'inline';
