@@ -15,6 +15,7 @@
   // Initialize Firebase
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
+  const storage = firebase.storage();
 
   // State
   let recipes = [];
@@ -24,6 +25,8 @@
   let currentRecipeId = null;
   let currentFormTab = 'link';
   let isInitialized = false;
+  let selectedImages = []; // For image upload in add recipe form
+  let modalSelectedImages = []; // For image upload in existing recipe modal
 
   // Categories definition
   const CATEGORIES = [
@@ -69,6 +72,10 @@
   const cancelSettingsBtn = document.getElementById('cancel-settings');
   const saveSettingsBtn = document.getElementById('save-settings');
   const openaiKeyInput = document.getElementById('openai-key');
+  const addImageModal = document.getElementById('add-image-modal');
+  const addImageModalClose = document.getElementById('add-image-modal-close');
+  const cancelAddImageBtn = document.getElementById('cancel-add-image');
+  const saveAddImageBtn = document.getElementById('save-add-image');
   const loading = document.getElementById('loading');
   const toastContainer = document.getElementById('toast-container');
 
@@ -238,16 +245,24 @@
     recipesContainer.innerHTML = filtered.map(recipe => {
       const category = categories.find(c => c.id === recipe.category);
       const type = typeInfo[recipe.type] || typeInfo.link;
-      const hasImage = recipe.content?.images && recipe.content.images.length > 0;
-      const imageFile = hasImage ? recipe.content.images[0] : null;
-      const isDocx = imageFile && imageFile.endsWith('.docx');
+      const hasLocalImage = recipe.content?.images && recipe.content.images.length > 0;
+      const hasUploadedImage = recipe.content?.uploadedImages && recipe.content.uploadedImages.length > 0;
+      const localImageFile = hasLocalImage ? recipe.content.images[0] : null;
+      const uploadedImageUrl = hasUploadedImage ? recipe.content.uploadedImages[0] : null;
+      const isDocx = localImageFile && localImageFile.endsWith('.docx');
+
+      let imageHtml;
+      if (uploadedImageUrl) {
+        imageHtml = `<img src="${uploadedImageUrl}" alt="${recipe.name}" class="recipe-image" loading="lazy" onerror="this.classList.add('placeholder'); this.outerHTML='<div class=\\'recipe-image placeholder\\'>${category?.icon || '🍽️'}</div>';">`;
+      } else if (hasLocalImage && !isDocx) {
+        imageHtml = `<img src="images/${localImageFile}" alt="${recipe.name}" class="recipe-image" loading="lazy" onerror="this.classList.add('placeholder'); this.outerHTML='<div class=\\'recipe-image placeholder\\'>${category?.icon || '🍽️'}</div>';">`;
+      } else {
+        imageHtml = `<div class="recipe-image placeholder">${category?.icon || '🍽️'}</div>`;
+      }
 
       return `
         <article class="recipe-card" data-id="${recipe.id}">
-          ${hasImage && !isDocx
-            ? `<img src="images/${imageFile}" alt="${recipe.name}" class="recipe-image" loading="lazy" onerror="this.classList.add('placeholder'); this.outerHTML='<div class=\\'recipe-image placeholder\\'>${category?.icon || '🍽️'}</div>';">`
-            : `<div class="recipe-image placeholder">${category?.icon || '🍽️'}</div>`
-          }
+          ${imageHtml}
           <div class="recipe-info">
             <h2 class="recipe-name">${recipe.name}</h2>
             <div class="recipe-meta">
@@ -271,7 +286,21 @@
 
     let contentHtml = '';
 
-    // Images
+    // Uploaded Images (from Firebase Storage)
+    if (recipe.content?.uploadedImages && recipe.content.uploadedImages.length > 0) {
+      const images = recipe.content.uploadedImages;
+      if (images.length === 1) {
+        contentHtml += `<img src="${images[0]}" alt="${recipe.name}" class="modal-image">`;
+      } else {
+        contentHtml += `
+          <div class="images-gallery">
+            ${images.map(img => `<img src="${img}" alt="${recipe.name}">`).join('')}
+          </div>
+        `;
+      }
+    }
+
+    // Local Images
     if (recipe.content?.images && recipe.content.images.length > 0) {
       const images = recipe.content.images.filter(img => !img.endsWith('.docx'));
       if (images.length === 1) {
@@ -295,24 +324,36 @@
       contentHtml += `<div class="modal-text">${escapeHtml(recipe.content.text)}</div>`;
     }
 
-    // Transcription or button to add one (for videos)
+    // Action buttons container
+    contentHtml += `<div class="recipe-action-buttons">`;
+
+    // Transcription or button to add one (for all recipes)
     if (recipe.content?.transcription) {
       contentHtml += `
-        <div class="transcription-box">
-          <h4>📝 תמלול הסרטון</h4>
+        <div class="transcription-box" style="width: 100%; margin-bottom: 12px;">
+          <h4>📝 טקסט המתכון</h4>
           <p>${escapeHtml(recipe.content.transcription)}</p>
           <button class="add-transcription-btn" data-action="edit-transcription" style="margin-top: 12px; background: #64748b;">
-            ✏️ ערוך תמלול
+            ✏️ ערוך טקסט
           </button>
         </div>
       `;
-    } else if (recipe.type === 'video') {
+    } else {
       contentHtml += `
         <button class="add-transcription-btn" data-action="add-transcription">
-          📝 הוסף תמלול
+          📝 העלאת טקסט ידנית
         </button>
       `;
     }
+
+    // Add image button
+    contentHtml += `
+      <button class="add-image-btn" data-action="add-image">
+        📷 הוסף תמונה
+      </button>
+    `;
+
+    contentHtml += `</div>`;
 
     // Notes
     if (recipe.notes) {
@@ -429,6 +470,7 @@
     addModal.classList.remove('active');
     document.body.style.overflow = '';
     addRecipeForm.reset();
+    clearImageSelection();
   }
 
   // Open add recipe modal
@@ -482,13 +524,28 @@
         notes: formData.notes || ''
       };
 
-      // Generate ID
+      // Generate ID first
       const docRef = await db.collection('recipes').add(newRecipe);
       newRecipe.id = docRef.id;
+
+      // If there are images to upload
+      if (formData.hasImagesToUpload && selectedImages.length > 0) {
+        showToast('מעלה תמונות...', 'info');
+        const imageUrls = await uploadImages(docRef.id);
+        if (imageUrls.length > 0) {
+          newRecipe.content.uploadedImages = imageUrls;
+          await db.collection('recipes').doc(docRef.id).update({
+            'content.uploadedImages': imageUrls
+          });
+        }
+      }
 
       // Update local state
       recipes.unshift(newRecipe);
       renderRecipes();
+
+      // Clear image selection
+      clearImageSelection();
 
       showToast('המתכון נוסף בהצלחה!', 'success');
       closeAddModal();
@@ -552,6 +609,349 @@
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+  }
+
+  // Image upload functions
+  function setupImageUpload() {
+    const uploadArea = document.getElementById('image-upload-area');
+    const fileInput = document.getElementById('recipe-images');
+    const placeholder = document.getElementById('upload-placeholder');
+    const previewContainer = document.getElementById('image-preview-container');
+
+    if (!uploadArea || !fileInput) return;
+
+    // Click to upload
+    uploadArea.addEventListener('click', (e) => {
+      if (e.target.closest('.remove-image') || e.target.closest('.add-more-images')) return;
+      fileInput.click();
+    });
+
+    // File selection
+    fileInput.addEventListener('change', (e) => {
+      handleImageSelection(e.target.files);
+    });
+
+    // Drag and drop
+    uploadArea.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadArea.style.borderColor = 'var(--primary-color)';
+    });
+
+    uploadArea.addEventListener('dragleave', () => {
+      uploadArea.style.borderColor = '';
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadArea.style.borderColor = '';
+      handleImageSelection(e.dataTransfer.files);
+    });
+  }
+
+  function handleImageSelection(files) {
+    const placeholder = document.getElementById('upload-placeholder');
+    const previewContainer = document.getElementById('image-preview-container');
+    const uploadArea = document.getElementById('image-upload-area');
+
+    for (const file of files) {
+      if (!file.type.startsWith('image/')) continue;
+
+      selectedImages.push(file);
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const div = document.createElement('div');
+        div.className = 'image-preview-item';
+        div.innerHTML = `
+          <img src="${e.target.result}" alt="Preview">
+          <button type="button" class="remove-image" data-index="${selectedImages.length - 1}">&times;</button>
+        `;
+        previewContainer.appendChild(div);
+      };
+      reader.readAsDataURL(file);
+    }
+
+    updateImagePreviewUI();
+  }
+
+  function updateImagePreviewUI() {
+    const placeholder = document.getElementById('upload-placeholder');
+    const previewContainer = document.getElementById('image-preview-container');
+    const uploadArea = document.getElementById('image-upload-area');
+
+    if (selectedImages.length > 0) {
+      placeholder.style.display = 'none';
+      uploadArea.classList.add('has-images');
+
+      // Add "add more" button if not exists
+      if (!previewContainer.querySelector('.add-more-images')) {
+        const addMore = document.createElement('div');
+        addMore.className = 'add-more-images';
+        addMore.innerHTML = '+';
+        addMore.addEventListener('click', (e) => {
+          e.stopPropagation();
+          document.getElementById('recipe-images').click();
+        });
+        previewContainer.appendChild(addMore);
+      }
+    } else {
+      placeholder.style.display = 'flex';
+      uploadArea.classList.remove('has-images');
+      previewContainer.innerHTML = '';
+    }
+  }
+
+  function removeImage(index) {
+    selectedImages.splice(index, 1);
+
+    // Rebuild preview
+    const previewContainer = document.getElementById('image-preview-container');
+    previewContainer.innerHTML = '';
+
+    selectedImages.forEach((file, i) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const div = document.createElement('div');
+        div.className = 'image-preview-item';
+        div.innerHTML = `
+          <img src="${e.target.result}" alt="Preview">
+          <button type="button" class="remove-image" data-index="${i}">&times;</button>
+        `;
+        previewContainer.appendChild(div);
+        updateImagePreviewUI();
+      };
+      reader.readAsDataURL(file);
+    });
+
+    if (selectedImages.length === 0) {
+      updateImagePreviewUI();
+    }
+  }
+
+  async function uploadImages(recipeId) {
+    const uploadedUrls = [];
+
+    for (let i = 0; i < selectedImages.length; i++) {
+      const file = selectedImages[i];
+      const ext = file.name.split('.').pop();
+      const filename = `${recipeId}_${Date.now()}_${i}.${ext}`;
+      const storageRef = storage.ref(`recipe-images/${filename}`);
+
+      try {
+        const snapshot = await storageRef.put(file);
+        const url = await snapshot.ref.getDownloadURL();
+        uploadedUrls.push(url);
+      } catch (error) {
+        console.error('Image upload failed:', error);
+      }
+    }
+
+    return uploadedUrls;
+  }
+
+  function clearImageSelection() {
+    selectedImages = [];
+    const previewContainer = document.getElementById('image-preview-container');
+    const placeholder = document.getElementById('upload-placeholder');
+    const uploadArea = document.getElementById('image-upload-area');
+
+    if (previewContainer) previewContainer.innerHTML = '';
+    if (placeholder) placeholder.style.display = 'flex';
+    if (uploadArea) uploadArea.classList.remove('has-images');
+
+    const fileInput = document.getElementById('recipe-images');
+    if (fileInput) fileInput.value = '';
+  }
+
+  // Modal image upload functions (for adding to existing recipes)
+  function setupModalImageUpload() {
+    const uploadArea = document.getElementById('modal-image-upload-area');
+    const fileInput = document.getElementById('modal-recipe-images');
+
+    if (!uploadArea || !fileInput) return;
+
+    uploadArea.addEventListener('click', (e) => {
+      if (e.target.closest('.remove-image') || e.target.closest('.add-more-images')) return;
+      fileInput.click();
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      handleModalImageSelection(e.target.files);
+    });
+
+    uploadArea.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadArea.style.borderColor = 'var(--primary-color)';
+    });
+
+    uploadArea.addEventListener('dragleave', () => {
+      uploadArea.style.borderColor = '';
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadArea.style.borderColor = '';
+      handleModalImageSelection(e.dataTransfer.files);
+    });
+  }
+
+  function handleModalImageSelection(files) {
+    const placeholder = document.getElementById('modal-upload-placeholder');
+    const previewContainer = document.getElementById('modal-image-preview-container');
+    const uploadArea = document.getElementById('modal-image-upload-area');
+
+    for (const file of files) {
+      if (!file.type.startsWith('image/')) continue;
+
+      modalSelectedImages.push(file);
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const div = document.createElement('div');
+        div.className = 'image-preview-item';
+        div.innerHTML = `
+          <img src="${e.target.result}" alt="Preview">
+          <button type="button" class="remove-image modal-remove" data-index="${modalSelectedImages.length - 1}">&times;</button>
+        `;
+        previewContainer.appendChild(div);
+      };
+      reader.readAsDataURL(file);
+    }
+
+    updateModalImagePreviewUI();
+  }
+
+  function updateModalImagePreviewUI() {
+    const placeholder = document.getElementById('modal-upload-placeholder');
+    const previewContainer = document.getElementById('modal-image-preview-container');
+    const uploadArea = document.getElementById('modal-image-upload-area');
+
+    if (modalSelectedImages.length > 0) {
+      placeholder.style.display = 'none';
+      uploadArea.classList.add('has-images');
+
+      if (!previewContainer.querySelector('.add-more-images')) {
+        const addMore = document.createElement('div');
+        addMore.className = 'add-more-images';
+        addMore.innerHTML = '+';
+        addMore.addEventListener('click', (e) => {
+          e.stopPropagation();
+          document.getElementById('modal-recipe-images').click();
+        });
+        previewContainer.appendChild(addMore);
+      }
+    } else {
+      placeholder.style.display = 'flex';
+      uploadArea.classList.remove('has-images');
+      previewContainer.innerHTML = '';
+    }
+  }
+
+  function removeModalImage(index) {
+    modalSelectedImages.splice(index, 1);
+
+    const previewContainer = document.getElementById('modal-image-preview-container');
+    previewContainer.innerHTML = '';
+
+    modalSelectedImages.forEach((file, i) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const div = document.createElement('div');
+        div.className = 'image-preview-item';
+        div.innerHTML = `
+          <img src="${e.target.result}" alt="Preview">
+          <button type="button" class="remove-image modal-remove" data-index="${i}">&times;</button>
+        `;
+        previewContainer.appendChild(div);
+        updateModalImagePreviewUI();
+      };
+      reader.readAsDataURL(file);
+    });
+
+    if (modalSelectedImages.length === 0) {
+      updateModalImagePreviewUI();
+    }
+  }
+
+  function clearModalImageSelection() {
+    modalSelectedImages = [];
+    const previewContainer = document.getElementById('modal-image-preview-container');
+    const placeholder = document.getElementById('modal-upload-placeholder');
+    const uploadArea = document.getElementById('modal-image-upload-area');
+
+    if (previewContainer) previewContainer.innerHTML = '';
+    if (placeholder) placeholder.style.display = 'flex';
+    if (uploadArea) uploadArea.classList.remove('has-images');
+
+    const fileInput = document.getElementById('modal-recipe-images');
+    if (fileInput) fileInput.value = '';
+  }
+
+  function openAddImageModal() {
+    clearModalImageSelection();
+    addImageModal.classList.add('active');
+  }
+
+  function closeAddImageModal() {
+    addImageModal.classList.remove('active');
+    clearModalImageSelection();
+  }
+
+  async function saveAddedImages() {
+    if (!currentRecipeId || modalSelectedImages.length === 0) {
+      showToast('נא לבחור לפחות תמונה אחת', 'error');
+      return;
+    }
+
+    const saveBtn = saveAddImageBtn;
+    const btnText = saveBtn.querySelector('.btn-text');
+    const btnLoading = saveBtn.querySelector('.btn-loading');
+
+    btnText.style.display = 'none';
+    btnLoading.style.display = 'inline';
+    saveBtn.disabled = true;
+
+    try {
+      // Upload images
+      const uploadedUrls = [];
+      for (let i = 0; i < modalSelectedImages.length; i++) {
+        const file = modalSelectedImages[i];
+        const ext = file.name.split('.').pop();
+        const filename = `${currentRecipeId}_${Date.now()}_${i}.${ext}`;
+        const storageRef = storage.ref(`recipe-images/${filename}`);
+
+        const snapshot = await storageRef.put(file);
+        const url = await snapshot.ref.getDownloadURL();
+        uploadedUrls.push(url);
+      }
+
+      // Get existing images and merge
+      const recipe = recipes.find(r => r.id === currentRecipeId);
+      const existingImages = recipe.content?.uploadedImages || [];
+      const allImages = [...existingImages, ...uploadedUrls];
+
+      // Update Firestore
+      await db.collection('recipes').doc(currentRecipeId).update({
+        'content.uploadedImages': allImages
+      });
+
+      // Update local state
+      if (!recipe.content) recipe.content = {};
+      recipe.content.uploadedImages = allImages;
+
+      showToast('התמונות נוספו בהצלחה!', 'success');
+      closeAddImageModal();
+
+      // Refresh the recipe modal
+      openRecipe(currentRecipeId);
+    } catch (error) {
+      console.error('Save images failed:', error);
+      showToast('שגיאה בשמירת התמונות', 'error');
+    }
+
+    btnText.style.display = 'inline';
+    btnLoading.style.display = 'none';
+    saveBtn.disabled = false;
   }
 
   // Setup event listeners
@@ -625,6 +1025,20 @@
     addModalClose.addEventListener('click', closeAddModal);
     cancelAddBtn.addEventListener('click', closeAddModal);
 
+    // Image upload setup
+    setupImageUpload();
+
+    // Remove image button
+    document.addEventListener('click', (e) => {
+      const removeBtn = e.target.closest('.remove-image');
+      if (removeBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const index = parseInt(removeBtn.dataset.index);
+        removeImage(index);
+      }
+    });
+
     addModal.addEventListener('click', (e) => {
       if (e.target === addModal) closeAddModal();
     });
@@ -648,6 +1062,11 @@
     });
 
     document.getElementById('recipe-name-text').addEventListener('input', (e) => {
+      const category = autoCategorize(e.target.value);
+      document.getElementById('recipe-category').value = category;
+    });
+
+    document.getElementById('recipe-name-image').addEventListener('input', (e) => {
       const category = autoCategorize(e.target.value);
       document.getElementById('recipe-category').value = category;
     });
@@ -679,7 +1098,7 @@
           },
           notes: document.getElementById('recipe-notes').value.trim()
         };
-      } else {
+      } else if (currentFormTab === 'text') {
         const name = document.getElementById('recipe-name-text').value.trim();
         const text = document.getElementById('recipe-text').value.trim();
 
@@ -697,6 +1116,30 @@
           },
           notes: document.getElementById('recipe-notes').value.trim()
         };
+      } else if (currentFormTab === 'image') {
+        const name = document.getElementById('recipe-name-image').value.trim();
+        const text = document.getElementById('recipe-text-image').value.trim();
+
+        if (!name) {
+          showToast('נא להזין שם המתכון', 'error');
+          return;
+        }
+
+        if (selectedImages.length === 0) {
+          showToast('נא להעלות לפחות תמונה אחת', 'error');
+          return;
+        }
+
+        formData = {
+          name: name,
+          category: document.getElementById('recipe-category').value,
+          type: 'photo',
+          content: {
+            text: text || ''
+          },
+          notes: document.getElementById('recipe-notes').value.trim(),
+          hasImagesToUpload: true
+        };
       }
 
       await addRecipe(formData);
@@ -707,6 +1150,8 @@
       if (e.key === 'Escape') {
         if (settingsModal.classList.contains('active')) {
           closeSettingsModal();
+        } else if (addImageModal.classList.contains('active')) {
+          closeAddImageModal();
         } else if (transcriptionModal.classList.contains('active')) {
           closeTranscriptionModal();
         } else if (deleteModal.classList.contains('active')) {
@@ -726,7 +1171,7 @@
       }
     });
 
-    // Transcription button in recipe modal
+    // Action buttons in recipe modal (transcription & image)
     modalBody.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-action]');
       if (!btn) return;
@@ -734,6 +1179,29 @@
       const action = btn.dataset.action;
       if (action === 'add-transcription' || action === 'edit-transcription') {
         openTranscriptionModal();
+      } else if (action === 'add-image') {
+        openAddImageModal();
+      }
+    });
+
+    // Add image modal
+    setupModalImageUpload();
+    addImageModalClose.addEventListener('click', closeAddImageModal);
+    cancelAddImageBtn.addEventListener('click', closeAddImageModal);
+    saveAddImageBtn.addEventListener('click', saveAddedImages);
+
+    addImageModal.addEventListener('click', (e) => {
+      if (e.target === addImageModal) closeAddImageModal();
+    });
+
+    // Handle remove image buttons for modal
+    document.addEventListener('click', (e) => {
+      const removeBtn = e.target.closest('.remove-image.modal-remove');
+      if (removeBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const index = parseInt(removeBtn.dataset.index);
+        removeModalImage(index);
       }
     });
 
@@ -778,7 +1246,7 @@
 
     const text = transcriptionText.value.trim();
     if (!text) {
-      showToast('נא להזין תמלול', 'error');
+      showToast('נא להזין טקסט', 'error');
       return;
     }
 
@@ -800,14 +1268,14 @@
         'content.transcription': text
       });
 
-      showToast('התמלול נשמר בהצלחה!', 'success');
+      showToast('הטקסט נשמר בהצלחה!', 'success');
       closeTranscriptionModal();
 
       // Refresh the recipe modal
       openRecipe(currentRecipeId);
     } catch (error) {
       console.error('Save transcription failed:', error);
-      showToast('שגיאה בשמירת התמלול', 'error');
+      showToast('שגיאה בשמירת הטקסט', 'error');
     }
 
     btnText.style.display = 'inline';
