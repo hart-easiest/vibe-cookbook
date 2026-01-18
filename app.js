@@ -16,6 +16,19 @@
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
   const storage = firebase.storage();
+  const auth = firebase.auth();
+
+  // Allowed email addresses that can edit recipes
+  const ALLOWED_EDITORS = [
+    'taladani@gmail.com',
+    'eliavschreiber@gmail.com',
+    'dschreiber@gmail.com',
+    'gidonschreiber@gmail.com'
+  ];
+
+  // Auth state
+  let currentUser = null;
+  let canEdit = false;
 
   // State
   let recipes = [];
@@ -143,6 +156,11 @@
   const tagsEditor = document.getElementById('tags-editor');
   const loading = document.getElementById('loading');
   const toastContainer = document.getElementById('toast-container');
+  const authBtn = document.getElementById('auth-btn');
+  const authModal = document.getElementById('auth-modal');
+  const authModalClose = document.getElementById('auth-modal-close');
+  const googleSigninBtn = document.getElementById('google-signin-btn');
+  const signoutBtn = document.getElementById('signout-btn');
 
   // Track selected tags for the editor
   let editingRecipeTags = [];
@@ -155,10 +173,97 @@
     photo: { icon: '📷', label: 'תמונה' }
   };
 
+  // Auth functions
+  function setupAuth() {
+    // Listen for auth state changes
+    auth.onAuthStateChanged((user) => {
+      currentUser = user;
+      canEdit = user && ALLOWED_EDITORS.includes(user.email);
+      updateAuthUI();
+      updateEditButtonsVisibility();
+    });
+  }
+
+  function updateAuthUI() {
+    const signedOutDiv = document.getElementById('auth-signed-out');
+    const signedInDiv = document.getElementById('auth-signed-in');
+
+    if (currentUser) {
+      signedOutDiv.style.display = 'none';
+      signedInDiv.style.display = 'block';
+
+      document.getElementById('auth-user-photo').src = currentUser.photoURL || '';
+      document.getElementById('auth-user-name').textContent = currentUser.displayName || 'משתמש';
+      document.getElementById('auth-user-email').textContent = currentUser.email;
+
+      const permissionStatus = document.getElementById('auth-permission-status');
+      if (canEdit) {
+        permissionStatus.className = 'auth-permission-status has-permission';
+        permissionStatus.textContent = '✓ יש לך הרשאה לערוך מתכונים';
+      } else {
+        permissionStatus.className = 'auth-permission-status no-permission';
+        permissionStatus.textContent = '⚠️ אין לך הרשאה לערוך מתכונים. פני למנהל המערכת.';
+      }
+
+      authBtn.classList.add('signed-in');
+      authBtn.textContent = '✓';
+    } else {
+      signedOutDiv.style.display = 'block';
+      signedInDiv.style.display = 'none';
+      authBtn.classList.remove('signed-in');
+      authBtn.textContent = '👤';
+    }
+  }
+
+  function updateEditButtonsVisibility() {
+    // Add recipe button
+    const addBtn = document.getElementById('add-recipe-btn');
+    if (addBtn) addBtn.classList.toggle('hidden', !canEdit);
+
+    // Delete button in modal
+    const deleteBtn = document.getElementById('modal-delete');
+    if (deleteBtn) deleteBtn.classList.toggle('hidden', !canEdit);
+  }
+
+  async function signInWithGoogle() {
+    try {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      await auth.signInWithPopup(provider);
+      closeAuthModal();
+      showToast('התחברת בהצלחה!', 'success');
+    } catch (error) {
+      console.error('Sign in failed:', error);
+      showToast('שגיאה בהתחברות', 'error');
+    }
+  }
+
+  async function signOut() {
+    try {
+      await auth.signOut();
+      closeAuthModal();
+      showToast('התנתקת בהצלחה', 'success');
+    } catch (error) {
+      console.error('Sign out failed:', error);
+    }
+  }
+
+  function openAuthModal() {
+    authModal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeAuthModal() {
+    authModal.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+
   // Initialize
   async function init() {
     showLoading(true);
     categories = CATEGORIES;
+
+    // Setup auth first
+    setupAuth();
 
     try {
       // Check if Firestore has data
@@ -584,7 +689,7 @@
       contentHtml += `<div class="modal-text">${escapeHtml(recipe.content.text)}</div>`;
     }
 
-    // Action buttons container
+    // Action buttons container (only show edit buttons if user can edit)
     contentHtml += `<div class="recipe-action-buttons">`;
 
     // Transcription or button to add one (for all recipes)
@@ -593,32 +698,46 @@
         <div class="transcription-box" style="width: 100%; margin-bottom: 12px;">
           <h4>📝 טקסט המתכון</h4>
           <p>${escapeHtml(recipe.content.transcription)}</p>
-          <button class="add-transcription-btn" data-action="edit-transcription" style="margin-top: 12px; background: #64748b;">
+          ${canEdit ? `<button class="add-transcription-btn" data-action="edit-transcription" style="margin-top: 12px; background: #64748b;">
             ✏️ ערוך טקסט
-          </button>
+          </button>` : ''}
         </div>
       `;
     } else {
+      // Show extract button for link-type recipes without transcription
+      if (canEdit && recipe.type === 'link' && recipe.content?.url) {
+        contentHtml += `
+          <button class="extract-recipe-btn" data-action="extract-recipe">
+            🔄 חלץ מתכון מהאתר
+          </button>
+        `;
+      }
+      if (canEdit) {
+        contentHtml += `
+          <button class="add-transcription-btn" data-action="add-transcription">
+            📝 העלאת טקסט ידנית
+          </button>
+        `;
+      }
+    }
+
+    // Add image button (only if can edit)
+    if (canEdit) {
       contentHtml += `
-        <button class="add-transcription-btn" data-action="add-transcription">
-          📝 העלאת טקסט ידנית
+        <button class="add-image-btn" data-action="add-image">
+          📷 הוסף תמונה
         </button>
       `;
     }
 
-    // Add image button
-    contentHtml += `
-      <button class="add-image-btn" data-action="add-image">
-        📷 הוסף תמונה
-      </button>
-    `;
-
-    // Edit tags button
-    contentHtml += `
-      <button class="edit-tags-btn" data-action="edit-tags">
-        🏷️ ערוך תגיות
-      </button>
-    `;
+    // Edit tags button (only if can edit)
+    if (canEdit) {
+      contentHtml += `
+        <button class="edit-tags-btn" data-action="edit-tags">
+          🏷️ ערוך תגיות
+        </button>
+      `;
+    }
 
     contentHtml += `</div>`;
 
@@ -838,12 +957,22 @@
 
   // Open add recipe modal
   function openAddModal() {
+    if (!canEdit) {
+      showToast('אין לך הרשאה להוסיף מתכונים. התחבר עם חשבון מורשה.', 'error');
+      openAuthModal();
+      return;
+    }
     addModal.classList.add('active');
     document.body.style.overflow = 'hidden';
   }
 
   // Delete recipe
   async function deleteRecipe(id) {
+    if (!canEdit) {
+      showToast('אין לך הרשאה למחוק מתכונים. התחבר עם חשבון מורשה.', 'error');
+      return;
+    }
+
     const recipe = recipes.find(r => r.id === id);
     if (!recipe) return;
 
@@ -1261,6 +1390,11 @@
   }
 
   async function saveAddedImages() {
+    if (!canEdit) {
+      showToast('אין לך הרשאה לערוך מתכונים', 'error');
+      return;
+    }
+
     if (!currentRecipeId || modalSelectedImages.length === 0) {
       showToast('נא לבחור לפחות תמונה אחת', 'error');
       return;
@@ -1579,6 +1713,8 @@
         openAddImageModal();
       } else if (action === 'edit-tags') {
         openEditTagsModal();
+      } else if (action === 'extract-recipe') {
+        extractRecipeFromUrl();
       }
     });
 
@@ -1630,6 +1766,16 @@
     settingsModal.addEventListener('click', (e) => {
       if (e.target === settingsModal) closeSettingsModal();
     });
+
+    // Auth modal
+    authBtn.addEventListener('click', openAuthModal);
+    authModalClose.addEventListener('click', closeAuthModal);
+    googleSigninBtn.addEventListener('click', signInWithGoogle);
+    signoutBtn.addEventListener('click', signOut);
+
+    authModal.addEventListener('click', (e) => {
+      if (e.target === authModal) closeAuthModal();
+    });
   }
 
   // Transcription modal functions
@@ -1650,6 +1796,11 @@
 
   async function saveTranscription() {
     if (!currentRecipeId) return;
+
+    if (!canEdit) {
+      showToast('אין לך הרשאה לערוך מתכונים', 'error');
+      return;
+    }
 
     const text = transcriptionText.value.trim();
     if (!text) {
@@ -1733,6 +1884,11 @@
   async function saveEditedTags() {
     if (!currentRecipeId) return;
 
+    if (!canEdit) {
+      showToast('אין לך הרשאה לערוך מתכונים', 'error');
+      return;
+    }
+
     const saveBtn = saveEditTagsBtn;
     const btnText = saveBtn.querySelector('.btn-text');
     const btnLoading = saveBtn.querySelector('.btn-loading');
@@ -1764,6 +1920,281 @@
     btnText.style.display = 'inline';
     btnLoading.style.display = 'none';
     saveBtn.disabled = false;
+  }
+
+  // Recipe extraction function
+  async function extractRecipeFromUrl() {
+    if (!currentRecipeId || !canEdit) return;
+
+    const recipe = recipes.find(r => r.id === currentRecipeId);
+    if (!recipe || !recipe.content?.url) return;
+
+    const url = recipe.content.url;
+    const extractBtn = document.querySelector('.extract-recipe-btn');
+
+    if (extractBtn) {
+      extractBtn.disabled = true;
+      extractBtn.textContent = '⏳ מחלץ...';
+    }
+
+    try {
+      // Use a CORS proxy to fetch the page
+      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+      const response = await fetch(proxyUrl);
+      const data = await response.json();
+
+      if (!data.contents) {
+        throw new Error('Failed to fetch page content');
+      }
+
+      // Parse the HTML
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(data.contents, 'text/html');
+
+      // Try to extract recipe content
+      let recipeText = extractRecipeContent(doc, url);
+
+      if (recipeText && recipeText.trim().length > 50) {
+        // Save the extracted text
+        if (!recipe.content) recipe.content = {};
+        recipe.content.transcription = recipeText;
+
+        await db.collection('recipes').doc(currentRecipeId).update({
+          'content.transcription': recipeText
+        });
+
+        showToast('המתכון חולץ בהצלחה!', 'success');
+        openRecipe(currentRecipeId); // Refresh modal
+      } else {
+        showToast('לא הצלחנו לחלץ את המתכון. נסה העלאה ידנית.', 'error');
+        if (extractBtn) {
+          extractBtn.disabled = false;
+          extractBtn.textContent = '🔄 חלץ מתכון מהאתר';
+        }
+      }
+    } catch (error) {
+      console.error('Extraction failed:', error);
+      showToast('שגיאה בחילוץ המתכון. נסה העלאה ידנית.', 'error');
+      if (extractBtn) {
+        extractBtn.disabled = false;
+        extractBtn.textContent = '🔄 חלץ מתכון מהאתר';
+      }
+    }
+  }
+
+  // Extract recipe content from parsed HTML
+  function extractRecipeContent(doc, url) {
+    let text = '';
+
+    // Try structured recipe data first (JSON-LD)
+    const jsonLdScripts = doc.querySelectorAll('script[type="application/ld+json"]');
+    for (const script of jsonLdScripts) {
+      try {
+        const data = JSON.parse(script.textContent);
+        const recipeData = findRecipeInJsonLd(data);
+        if (recipeData) {
+          text = formatRecipeFromJsonLd(recipeData);
+          if (text) return text;
+        }
+      } catch (e) {
+        // Continue to next method
+      }
+    }
+
+    // Site-specific selectors
+    const domain = getDomainFromUrl(url);
+
+    // Common recipe selectors for different sites
+    const selectors = getRecipeSelectors(domain);
+
+    for (const selector of selectors) {
+      const element = doc.querySelector(selector);
+      if (element) {
+        text = cleanRecipeText(element.innerText || element.textContent);
+        if (text.length > 100) return text;
+      }
+    }
+
+    // Fallback: try to find ingredient and instruction lists
+    const ingredients = [];
+    const instructions = [];
+
+    // Look for ingredient patterns
+    const ingredientElements = doc.querySelectorAll('[class*="ingredient"], [class*="Ingredient"], li[itemprop="recipeIngredient"]');
+    ingredientElements.forEach(el => {
+      const text = (el.innerText || el.textContent).trim();
+      if (text && text.length > 2 && text.length < 200) {
+        ingredients.push(text);
+      }
+    });
+
+    // Look for instruction patterns
+    const instructionElements = doc.querySelectorAll('[class*="instruction"], [class*="Instruction"], [class*="direction"], [class*="step"], li[itemprop="recipeInstructions"]');
+    instructionElements.forEach(el => {
+      const text = (el.innerText || el.textContent).trim();
+      if (text && text.length > 10) {
+        instructions.push(text);
+      }
+    });
+
+    if (ingredients.length > 0 || instructions.length > 0) {
+      if (ingredients.length > 0) {
+        text = 'מרכיבים:\n' + ingredients.join('\n') + '\n\n';
+      }
+      if (instructions.length > 0) {
+        text += 'הוראות הכנה:\n' + instructions.join('\n');
+      }
+      return text;
+    }
+
+    // Last resort: get main content
+    const mainContent = doc.querySelector('article, main, .content, .post-content, .entry-content');
+    if (mainContent) {
+      return cleanRecipeText(mainContent.innerText || mainContent.textContent);
+    }
+
+    return '';
+  }
+
+  // Find recipe data in JSON-LD (handles nested structures)
+  function findRecipeInJsonLd(data) {
+    if (!data) return null;
+
+    if (Array.isArray(data)) {
+      for (const item of data) {
+        const result = findRecipeInJsonLd(item);
+        if (result) return result;
+      }
+      return null;
+    }
+
+    if (typeof data === 'object') {
+      if (data['@type'] === 'Recipe' || (Array.isArray(data['@type']) && data['@type'].includes('Recipe'))) {
+        return data;
+      }
+
+      // Check @graph
+      if (data['@graph']) {
+        return findRecipeInJsonLd(data['@graph']);
+      }
+    }
+
+    return null;
+  }
+
+  // Format recipe from JSON-LD structured data
+  function formatRecipeFromJsonLd(recipe) {
+    let text = '';
+
+    // Description
+    if (recipe.description) {
+      text += recipe.description + '\n\n';
+    }
+
+    // Prep/Cook time
+    const times = [];
+    if (recipe.prepTime) times.push(`זמן הכנה: ${formatDuration(recipe.prepTime)}`);
+    if (recipe.cookTime) times.push(`זמן בישול: ${formatDuration(recipe.cookTime)}`);
+    if (recipe.totalTime) times.push(`זמן כולל: ${formatDuration(recipe.totalTime)}`);
+    if (times.length > 0) {
+      text += times.join(' | ') + '\n\n';
+    }
+
+    // Servings
+    if (recipe.recipeYield) {
+      text += `מנות: ${Array.isArray(recipe.recipeYield) ? recipe.recipeYield[0] : recipe.recipeYield}\n\n`;
+    }
+
+    // Ingredients
+    if (recipe.recipeIngredient && recipe.recipeIngredient.length > 0) {
+      text += 'מרכיבים:\n';
+      recipe.recipeIngredient.forEach(ing => {
+        text += `• ${ing}\n`;
+      });
+      text += '\n';
+    }
+
+    // Instructions
+    if (recipe.recipeInstructions) {
+      text += 'הוראות הכנה:\n';
+      const instructions = Array.isArray(recipe.recipeInstructions) ? recipe.recipeInstructions : [recipe.recipeInstructions];
+
+      instructions.forEach((step, idx) => {
+        if (typeof step === 'string') {
+          text += `${idx + 1}. ${step}\n`;
+        } else if (step.text) {
+          text += `${idx + 1}. ${step.text}\n`;
+        } else if (step['@type'] === 'HowToSection' && step.itemListElement) {
+          text += `\n${step.name || ''}:\n`;
+          step.itemListElement.forEach((subStep, subIdx) => {
+            const stepText = typeof subStep === 'string' ? subStep : subStep.text;
+            if (stepText) text += `${subIdx + 1}. ${stepText}\n`;
+          });
+        }
+      });
+    }
+
+    return text.trim();
+  }
+
+  // Format ISO duration to readable format
+  function formatDuration(duration) {
+    if (!duration) return '';
+    // PT30M -> 30 דקות, PT1H30M -> שעה ו-30 דקות
+    const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?/);
+    if (!match) return duration;
+
+    const hours = parseInt(match[1] || 0);
+    const minutes = parseInt(match[2] || 0);
+
+    const parts = [];
+    if (hours > 0) parts.push(`${hours} שעות`);
+    if (minutes > 0) parts.push(`${minutes} דקות`);
+
+    return parts.join(' ו-') || duration;
+  }
+
+  // Get site-specific selectors
+  function getRecipeSelectors(domain) {
+    const siteSelectors = {
+      'oogio.net': ['.wprm-recipe-container', '.recipe-container', '.entry-content'],
+      'heninthekitchen.com': ['.recipe-content', '.entry-content', 'article'],
+      'lichtenstadt.com': ['.recipe-card', '.entry-content', 'article'],
+      'carine.co.il': ['.recipe-content', '.entry-content', '.post-content'],
+      'bakery365.co.il': ['.recipe-section', '.recipe-content', '.entry-content'],
+      'hashulchan.co.il': ['.recipe-content', '.article-content'],
+      'foodish.co.il': ['.recipe-body', '.entry-content'],
+      'gilmoran.com': ['.recipe-content', '.entry-content'],
+      '10dakot.co.il': ['.recipe-content', '.entry-content']
+    };
+
+    // Common selectors that work on most recipe sites
+    const commonSelectors = [
+      '.wprm-recipe-container',
+      '.recipe-content',
+      '.recipe-container',
+      '[itemtype*="Recipe"]',
+      '.tasty-recipes',
+      '.mv-recipe',
+      '.entry-content .recipe',
+      'article .recipe'
+    ];
+
+    return [...(siteSelectors[domain] || []), ...commonSelectors];
+  }
+
+  // Clean extracted text
+  function cleanRecipeText(text) {
+    if (!text) return '';
+
+    return text
+      .replace(/\s+/g, ' ')        // Normalize whitespace
+      .replace(/\n\s*\n/g, '\n\n') // Remove excessive newlines
+      .replace(/^\s+|\s+$/g, '')   // Trim
+      .replace(/Share.*?Facebook|Tweet|Pinterest|Print|Email/gi, '') // Remove social buttons
+      .replace(/\d+ תגובות?/g, '') // Remove comment counts
+      .replace(/קראו עוד|המשך קריאה/g, '') // Remove "read more"
+      .trim();
   }
 
   // Settings modal functions

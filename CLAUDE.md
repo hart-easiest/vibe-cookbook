@@ -26,8 +26,11 @@ A beautiful Hebrew recipe cookbook web app that displays recipes from various so
 ├── styles.css              # RTL-aware responsive styling (Editorial theme)
 ├── app.js                  # App logic, Firebase integration, UI
 ├── recipes.json            # Original recipe data (backup)
+├── firestore.rules         # Firestore security rules
+├── storage.rules           # Firebase Storage security rules
 ├── update-descriptions.js  # Script to batch update Firebase transcriptions
 ├── update-recipe-names.js  # Script to rename "מתכון מאינסטגרם" recipes
+├── extract-recipes.js      # Script to extract recipe text from external links
 └── CLAUDE.md               # This file
 ```
 
@@ -50,8 +53,21 @@ A beautiful Hebrew recipe cookbook web app that displays recipes from various so
 - Add recipes via text entry
 - Add recipes via image upload (Firebase Storage)
 - Manual text upload for recipe instructions
+- Automatic recipe extraction from external website links
 - Delete recipes
 - Search across names, notes, and transcriptions
+
+### Authentication & Security
+- Google Sign-in authentication
+- Email whitelist for edit permissions
+- Public read access (anyone can view recipes)
+- Write access restricted to authorized users only
+
+### Authorized Editors
+- taladani@gmail.com
+- eliavschreiber@gmail.com
+- dschreiber@gmail.com
+- gidonschreiber@gmail.com
 
 ### External Links
 - Branded cards for known recipe websites (16+ sites)
@@ -141,6 +157,14 @@ GitHub Pages automatically deploys from the main branch.
 ### Helper Scripts
 - `update-descriptions.js` - Batch update recipe transcriptions in Firebase
 - `update-recipe-names.js` - Rename recipes from "מתכון מאינסטגרם" to proper names
+- `extract-recipes.js` - Extract recipe text from external website links (run in browser console)
+
+### Deploying Security Rules
+To deploy Firestore and Storage security rules:
+1. Install Firebase CLI: `npm install -g firebase-tools`
+2. Login: `firebase login`
+3. Init project: `firebase init` (select Firestore and Storage)
+4. Deploy rules: `firebase deploy --only firestore:rules,storage`
 
 ## Future Improvements
 

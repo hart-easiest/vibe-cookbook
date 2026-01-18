@@ -29,7 +29,7 @@
 }
 
 /* Import Google Fonts - Better Hebrew typography */
-@import url('https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;500;600;700&family=Rubik:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Assistant:wght@400;500;600;700;800&family=Frank+Ruhl+Libre:wght@400;500;600;700&family=Rubik:wght@300;400;500;600;700&display=swap');
 
 /* Reset & Base */
 *, *::before, *::after {
@@ -83,9 +83,9 @@ body {
 }
 
 .app-header h1 {
-  font-family: var(--font-accent);
+  font-family: 'Assistant', var(--font-body);
   font-size: 2rem;
-  font-weight: 700;
+  font-weight: 800;
   text-align: center;
   letter-spacing: -0.02em;
   color: var(--primary-color);
@@ -101,7 +101,8 @@ body {
   color: var(--accent-color);
 }
 
-.settings-btn {
+.settings-btn,
+.auth-btn {
   position: absolute;
   left: 0;
   background: transparent;
@@ -115,7 +116,17 @@ body {
   color: var(--text-secondary);
 }
 
-.settings-btn:hover {
+.auth-btn {
+  left: 50px;
+}
+
+.auth-btn.signed-in {
+  border-color: var(--success-color);
+  color: var(--success-color);
+}
+
+.settings-btn:hover,
+.auth-btn:hover {
   background: var(--bg-secondary);
   border-color: var(--accent-color);
   color: var(--accent-color);
@@ -556,6 +567,10 @@ body {
   max-width: 480px;
 }
 
+.auth-modal-content {
+  max-width: 420px;
+}
+
 .modal-subtitle {
   color: var(--text-secondary);
   font-size: 0.9rem;
@@ -811,6 +826,35 @@ body {
 .add-transcription-btn:hover {
   background: var(--accent-dark);
   transform: translateY(-1px);
+}
+
+.extract-recipe-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-family: var(--font-body);
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 16px;
+  margin-left: 8px;
+  transition: all 0.2s;
+}
+
+.extract-recipe-btn:hover {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+}
+
+.extract-recipe-btn:disabled {
+  background: var(--text-light);
+  cursor: not-allowed;
+  transform: none;
 }
 
 .transcription-loading {
@@ -1568,6 +1612,89 @@ body {
   .external-recipe-icon {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   }
+}
+
+/* Auth Styles */
+.google-signin-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 24px;
+  background: white;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  font-size: 1rem;
+  font-family: var(--font-body);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 20px;
+}
+
+.google-signin-btn:hover {
+  background: var(--bg-secondary);
+  border-color: var(--text-secondary);
+}
+
+.auth-user-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius);
+  margin-top: 16px;
+}
+
+.auth-user-photo {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.auth-user-details {
+  flex: 1;
+}
+
+.auth-user-name {
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.auth-user-email {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  direction: ltr;
+  text-align: right;
+}
+
+.auth-permission-status {
+  margin-top: 16px;
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+}
+
+.auth-permission-status.has-permission {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.auth-permission-status.no-permission {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+/* Hide edit buttons when not authorized */
+.add-recipe-btn.hidden,
+.modal-delete.hidden,
+.add-transcription-btn.hidden,
+.add-image-btn.hidden,
+.edit-tags-btn.hidden {
+  display: none !important;
 }
 
 /* Print styles */
