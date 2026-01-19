@@ -16,16 +16,24 @@
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
 
-  // Enable offline persistence for faster loads
-  db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
-    if (err.code === 'failed-precondition') {
-      // Multiple tabs open, persistence can only be enabled in one tab at a time
-      console.log('Persistence failed: multiple tabs open');
-    } else if (err.code === 'unimplemented') {
-      // Browser doesn't support persistence
-      console.log('Persistence not supported');
-    }
-  });
+  // Enable offline persistence for faster loads (optional - fails gracefully in private browsing)
+  try {
+    db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
+      if (err.code === 'failed-precondition') {
+        // Multiple tabs open, persistence can only be enabled in one tab at a time
+        console.log('Persistence failed: multiple tabs open');
+      } else if (err.code === 'unimplemented') {
+        // Browser doesn't support persistence
+        console.log('Persistence not supported');
+      } else {
+        // Other errors (e.g., Safari private mode, quota exceeded)
+        console.log('Persistence error:', err.code, err.message);
+      }
+    });
+  } catch (e) {
+    // Synchronous errors (shouldn't happen, but just in case)
+    console.log('Persistence setup error:', e);
+  }
 
   // Storage removed - requires paid Firebase plan
   const auth = firebase.auth();
@@ -305,9 +313,18 @@
     setupEventListeners();
 
     // Try to load from localStorage cache first for instant display
-    const cached = localStorage.getItem('recipes_cache');
-    const cacheTime = localStorage.getItem('recipes_cache_time');
-    const cacheAge = cacheTime ? Date.now() - parseInt(cacheTime) : Infinity;
+    // Note: localStorage may not be available in private browsing mode
+    let cached = null;
+    let cacheAge = Infinity;
+
+    try {
+      cached = localStorage.getItem('recipes_cache');
+      const cacheTime = localStorage.getItem('recipes_cache_time');
+      cacheAge = cacheTime ? Date.now() - parseInt(cacheTime) : Infinity;
+    } catch (e) {
+      // localStorage not available (private browsing mode)
+      console.log('localStorage not available:', e.message);
+    }
 
     if (cached && cacheAge < 5 * 60 * 1000) { // Cache valid for 5 minutes
       try {
@@ -348,6 +365,7 @@
             renderTagFilters();
             renderRecipes();
             showLoading(false);
+            isInitialized = true;
             return;
           }
         } catch (e) {}
@@ -360,6 +378,7 @@
         recipes = data.recipes || [];
         renderTagFilters();
         renderRecipes();
+        isInitialized = true;
       } catch (e) {
         console.error('Failed to load JSON:', e);
         recipesContainer.innerHTML = `
@@ -1936,7 +1955,12 @@
 
   // Theme toggle functions
   function initTheme() {
-    const savedTheme = localStorage.getItem('theme') || 'auto';
+    let savedTheme = 'auto';
+    try {
+      savedTheme = localStorage.getItem('theme') || 'auto';
+    } catch (e) {
+      // localStorage not available (private browsing)
+    }
     applyTheme(savedTheme);
   }
 
@@ -1951,12 +1975,21 @@
     }
     // 'auto' = no class, uses prefers-color-scheme
 
-    localStorage.setItem('theme', theme);
+    try {
+      localStorage.setItem('theme', theme);
+    } catch (e) {
+      // localStorage not available (private browsing)
+    }
     updateThemeButtons();
   }
 
   function updateThemeButtons() {
-    const savedTheme = localStorage.getItem('theme') || 'auto';
+    let savedTheme = 'auto';
+    try {
+      savedTheme = localStorage.getItem('theme') || 'auto';
+    } catch (e) {
+      // localStorage not available (private browsing)
+    }
     document.querySelectorAll('.theme-btn').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.theme === savedTheme);
     });
