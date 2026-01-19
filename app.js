@@ -278,54 +278,64 @@
     populateCategorySelect();
     setupEventListeners();
 
-    try {
-      // Try to load from localStorage cache first for instant display
-      const cached = localStorage.getItem('recipes_cache');
-      const cacheTime = localStorage.getItem('recipes_cache_time');
-      const cacheAge = cacheTime ? Date.now() - parseInt(cacheTime) : Infinity;
+    // Try to load from localStorage cache first for instant display
+    const cached = localStorage.getItem('recipes_cache');
+    const cacheTime = localStorage.getItem('recipes_cache_time');
+    const cacheAge = cacheTime ? Date.now() - parseInt(cacheTime) : Infinity;
 
-      if (cached && cacheAge < 5 * 60 * 1000) { // Cache valid for 5 minutes
+    if (cached && cacheAge < 5 * 60 * 1000) { // Cache valid for 5 minutes
+      try {
         recipes = JSON.parse(cached);
-        renderTagFilters();
-        renderRecipes();
-        showLoading(false);
-
-        // Refresh from Firestore in background
-        loadRecipesFromFirestore().then(() => {
+        if (recipes && recipes.length > 0) {
           renderTagFilters();
           renderRecipes();
-        }).catch(() => {});
-      } else {
-        // Load from Firestore
-        await loadRecipesFromFirestore();
-        renderTagFilters();
-        renderRecipes();
-        showLoading(false);
-      }
+          showLoading(false);
 
+          // Refresh from Firestore in background
+          loadRecipesFromFirestore().then(() => {
+            renderTagFilters();
+            renderRecipes();
+          }).catch(console.error);
+
+          isInitialized = true;
+          return;
+        }
+      } catch (e) {
+        console.error('Cache parse error:', e);
+      }
+    }
+
+    // No valid cache, load from Firestore
+    try {
+      await loadRecipesFromFirestore();
+      renderTagFilters();
+      renderRecipes();
       isInitialized = true;
     } catch (error) {
-      console.error('Failed to initialize:', error);
+      console.error('Failed to load from Firestore:', error);
 
-      // Try cache even if expired
-      const cached = localStorage.getItem('recipes_cache');
+      // Try expired cache
       if (cached) {
-        recipes = JSON.parse(cached);
-        renderTagFilters();
-        renderRecipes();
-        showLoading(false);
-        return;
+        try {
+          recipes = JSON.parse(cached);
+          if (recipes && recipes.length > 0) {
+            renderTagFilters();
+            renderRecipes();
+            showLoading(false);
+            return;
+          }
+        } catch (e) {}
       }
 
       // Fallback to JSON file
       try {
         const response = await fetch('recipes.json');
         const data = await response.json();
-        recipes = data.recipes;
-        categories = data.categories || CATEGORIES;
+        recipes = data.recipes || [];
         renderTagFilters();
         renderRecipes();
       } catch (e) {
+        console.error('Failed to load JSON:', e);
         recipesContainer.innerHTML = `
           <div class="empty-state">
             <div class="empty-state-icon">😕</div>
@@ -333,8 +343,9 @@
           </div>
         `;
       }
-      showLoading(false);
     }
+
+    showLoading(false);
   }
 
   // Load recipes from Firestore with caching
