@@ -249,6 +249,10 @@
     // Delete button in modal
     const deleteBtn = document.getElementById('modal-delete');
     if (deleteBtn) deleteBtn.classList.toggle('hidden', !canEdit);
+
+    // Categories settings section (only for editors)
+    const categoriesSection = document.getElementById('categories-settings-section');
+    if (categoriesSection) categoriesSection.classList.toggle('hidden', !canEdit);
   }
 
   async function signInWithGoogle() {
@@ -287,6 +291,10 @@
   async function init() {
     showLoading(true);
     categories = CATEGORIES;
+
+    // Setup theme first (before any UI renders)
+    initTheme();
+    setupThemeToggle();
 
     // Setup auth (non-blocking)
     setupAuth();
@@ -1884,6 +1892,9 @@
     const savedKey = localStorage.getItem('openai_api_key') || '';
     openaiKeyInput.value = savedKey;
 
+    // Update theme buttons state
+    updateThemeButtons();
+
     settingsModal.classList.add('active');
     document.body.style.overflow = 'hidden';
   }
@@ -1905,6 +1916,42 @@
     }
 
     closeSettingsModal();
+  }
+
+  // Theme toggle functions
+  function initTheme() {
+    const savedTheme = localStorage.getItem('theme') || 'auto';
+    applyTheme(savedTheme);
+  }
+
+  function applyTheme(theme) {
+    const html = document.documentElement;
+    html.classList.remove('dark-mode', 'light-mode');
+
+    if (theme === 'dark') {
+      html.classList.add('dark-mode');
+    } else if (theme === 'light') {
+      html.classList.add('light-mode');
+    }
+    // 'auto' = no class, uses prefers-color-scheme
+
+    localStorage.setItem('theme', theme);
+    updateThemeButtons();
+  }
+
+  function updateThemeButtons() {
+    const savedTheme = localStorage.getItem('theme') || 'auto';
+    document.querySelectorAll('.theme-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.theme === savedTheme);
+    });
+  }
+
+  function setupThemeToggle() {
+    document.querySelectorAll('.theme-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        applyTheme(btn.dataset.theme);
+      });
+    });
   }
 
   // Edit recipe details modal functions

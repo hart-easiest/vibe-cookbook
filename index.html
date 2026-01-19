@@ -302,10 +302,20 @@
         <div class="modal-body">
           <h2 class="modal-title">⚙️ הגדרות</h2>
 
-          <div class="settings-section">
+          <div class="settings-section" id="categories-settings-section">
             <h3>📂 קטגוריות</h3>
             <p class="settings-desc">נהלי קטגוריות ותת-קטגוריות</p>
             <button type="button" class="btn btn-secondary" id="open-manage-categories">ניהול קטגוריות</button>
+          </div>
+
+          <div class="settings-section">
+            <h3>🌙 מצב תצוגה</h3>
+            <p class="settings-desc">בחרי בין מצב בהיר לכהה</p>
+            <div class="theme-toggle">
+              <button type="button" class="theme-btn" data-theme="light" id="theme-light">☀️ בהיר</button>
+              <button type="button" class="theme-btn" data-theme="dark" id="theme-dark">🌙 כהה</button>
+              <button type="button" class="theme-btn active" data-theme="auto" id="theme-auto">🔄 אוטומטי</button>
+            </div>
           </div>
 
           <div class="settings-section">
