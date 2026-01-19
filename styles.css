@@ -1719,6 +1719,124 @@ body {
   display: none !important;
 }
 
+/* Edit Category Button */
+.edit-category-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: #0891b2;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-family: var(--font-body);
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 16px;
+  transition: all 0.2s;
+}
+
+.edit-category-btn:hover {
+  background: #0e7490;
+  transform: translateY(-1px);
+}
+
+/* Categories Manager */
+.categories-manager {
+  max-height: 400px;
+  overflow-y: auto;
+  margin-bottom: 24px;
+}
+
+.category-manager-section {
+  background: var(--bg-secondary);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.category-manager-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.category-manager-icon {
+  font-size: 1.3rem;
+}
+
+.sub-categories-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.sub-category-item {
+  background: var(--card-bg);
+  padding: 6px 12px;
+  border-radius: 15px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.add-sub-category-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.add-sub-category-row input {
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  font-size: 0.85rem;
+  font-family: var(--font-body);
+}
+
+.add-sub-category-row .sub-category-name-input {
+  flex: 1;
+}
+
+.btn-small {
+  padding: 8px 16px !important;
+  font-size: 0.85rem !important;
+}
+
+.add-category-section {
+  border-top: 1px solid var(--border-color);
+  padding-top: 20px;
+  margin-top: 8px;
+}
+
+.add-category-section h3 {
+  font-size: 0.95rem;
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+
+.add-category-form {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.add-category-form input {
+  padding: 10px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+  font-family: var(--font-body);
+}
+
+.add-category-form input:first-child {
+  flex: 1;
+}
+
 /* Print styles */
 @media print {
   .app-header,

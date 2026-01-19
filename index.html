@@ -203,6 +203,59 @@
       </div>
     </div>
 
+    <!-- Edit Category Modal -->
+    <div class="modal" id="edit-category-modal">
+      <div class="modal-content transcription-modal-content">
+        <button class="modal-close" id="edit-category-modal-close">&times;</button>
+        <div class="modal-body">
+          <h2 class="modal-title">📂 שנה קטגוריה</h2>
+          <p class="modal-subtitle">בחרי קטגוריה חדשה למתכון</p>
+
+          <div class="form-group">
+            <label for="edit-category-select">קטגוריה</label>
+            <select id="edit-category-select">
+              <!-- Will be populated by JS -->
+            </select>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary" id="cancel-edit-category">ביטול</button>
+            <button type="button" class="btn btn-primary" id="save-edit-category">
+              <span class="btn-text">שמור קטגוריה</span>
+              <span class="btn-loading" style="display:none;">שומר...</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Manage Categories Modal -->
+    <div class="modal" id="manage-categories-modal">
+      <div class="modal-content settings-modal-content">
+        <button class="modal-close" id="manage-categories-modal-close">&times;</button>
+        <div class="modal-body">
+          <h2 class="modal-title">📂 ניהול קטגוריות</h2>
+
+          <div class="categories-manager" id="categories-manager">
+            <!-- Categories will be populated by JS -->
+          </div>
+
+          <div class="add-category-section">
+            <h3>הוסף קטגוריה ראשית חדשה</h3>
+            <div class="add-category-form">
+              <input type="text" id="new-main-category-name" placeholder="שם הקטגוריה">
+              <input type="text" id="new-main-category-icon" placeholder="אימוג'י" maxlength="2" style="width: 60px;">
+              <button type="button" class="btn btn-primary btn-small" id="add-main-category-btn">הוסף</button>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary" id="close-manage-categories">סגור</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Auth Modal -->
     <div class="modal" id="auth-modal">
       <div class="modal-content auth-modal-content">
@@ -243,6 +296,12 @@
         <button class="modal-close" id="settings-modal-close">&times;</button>
         <div class="modal-body">
           <h2 class="modal-title">⚙️ הגדרות</h2>
+
+          <div class="settings-section">
+            <h3>📂 קטגוריות</h3>
+            <p class="settings-desc">נהלי קטגוריות ותת-קטגוריות</p>
+            <button type="button" class="btn btn-secondary" id="open-manage-categories">ניהול קטגוריות</button>
+          </div>
 
           <div class="settings-section">
             <h3>🤖 OpenAI API</h3>

@@ -171,6 +171,14 @@
   const cancelEditTagsBtn = document.getElementById('cancel-edit-tags');
   const saveEditTagsBtn = document.getElementById('save-edit-tags');
   const tagsEditor = document.getElementById('tags-editor');
+  const editCategoryModal = document.getElementById('edit-category-modal');
+  const editCategoryModalClose = document.getElementById('edit-category-modal-close');
+  const cancelEditCategoryBtn = document.getElementById('cancel-edit-category');
+  const saveEditCategoryBtn = document.getElementById('save-edit-category');
+  const editCategorySelect = document.getElementById('edit-category-select');
+  const manageCategoriesModal = document.getElementById('manage-categories-modal');
+  const manageCategoriesModalClose = document.getElementById('manage-categories-modal-close');
+  const closeManageCategoriesBtn = document.getElementById('close-manage-categories');
   const loading = document.getElementById('loading');
   const toastContainer = document.getElementById('toast-container');
   const authBtn = document.getElementById('auth-btn');
@@ -772,6 +780,9 @@
         <button class="edit-tags-btn" data-action="edit-tags">
           🏷️ ערוך תגיות
         </button>
+        <button class="edit-category-btn" data-action="edit-category">
+          📂 שנה קטגוריה
+        </button>
       `;
     }
 
@@ -1365,6 +1376,8 @@
         openTranscriptionModal();
       } else if (action === 'edit-tags') {
         openEditTagsModal();
+      } else if (action === 'edit-category') {
+        openEditCategoryModal();
       } else if (action === 'extract-recipe') {
         extractRecipeFromUrl();
       }
@@ -1390,6 +1403,35 @@
       if (e.target === editTagsModal) closeEditTagsModal();
     });
 
+    // Edit category modal
+    editCategoryModalClose.addEventListener('click', closeEditCategoryModal);
+    cancelEditCategoryBtn.addEventListener('click', closeEditCategoryModal);
+    saveEditCategoryBtn.addEventListener('click', saveEditedCategory);
+
+    editCategoryModal.addEventListener('click', (e) => {
+      if (e.target === editCategoryModal) closeEditCategoryModal();
+    });
+
+    // Manage categories modal
+    manageCategoriesModalClose.addEventListener('click', closeManageCategoriesModal);
+    closeManageCategoriesBtn.addEventListener('click', closeManageCategoriesModal);
+
+    manageCategoriesModal.addEventListener('click', (e) => {
+      if (e.target === manageCategoriesModal) closeManageCategoriesModal();
+    });
+
+    // Add main category button
+    document.getElementById('add-main-category-btn')?.addEventListener('click', addNewMainCategory);
+
+    // Add sub-category buttons (delegated)
+    document.getElementById('categories-manager')?.addEventListener('click', (e) => {
+      const addSubBtn = e.target.closest('.add-sub-category-btn');
+      if (addSubBtn) {
+        const mainCatId = addSubBtn.dataset.mainCategory;
+        addNewSubCategory(mainCatId);
+      }
+    });
+
     // Settings modal
     settingsBtn.addEventListener('click', openSettingsModal);
     settingsModalClose.addEventListener('click', closeSettingsModal);
@@ -1398,6 +1440,12 @@
 
     settingsModal.addEventListener('click', (e) => {
       if (e.target === settingsModal) closeSettingsModal();
+    });
+
+    // Open manage categories from settings
+    document.getElementById('open-manage-categories')?.addEventListener('click', () => {
+      closeSettingsModal();
+      openManageCategoriesModal();
     });
 
     // Auth modal
@@ -1857,6 +1905,230 @@
     }
 
     closeSettingsModal();
+  }
+
+  // Edit category modal functions
+  function openEditCategoryModal() {
+    const recipe = recipes.find(r => r.id === currentRecipeId);
+    if (!recipe) return;
+
+    // Populate the select with hierarchical categories
+    let html = '';
+    MAIN_CATEGORIES.forEach(mainCat => {
+      const subCats = SUB_CATEGORIES[mainCat.id] || [];
+      if (subCats.length > 0) {
+        html += `<optgroup label="${mainCat.icon} ${mainCat.name}">`;
+        subCats.forEach(subCat => {
+          const selected = recipe.category === subCat.id ? 'selected' : '';
+          html += `<option value="${subCat.id}" data-main="${mainCat.id}" ${selected}>${subCat.icon} ${subCat.name}</option>`;
+        });
+        html += `</optgroup>`;
+      }
+    });
+    editCategorySelect.innerHTML = html;
+
+    editCategoryModal.classList.add('active');
+  }
+
+  function closeEditCategoryModal() {
+    editCategoryModal.classList.remove('active');
+  }
+
+  async function saveEditedCategory() {
+    if (!currentRecipeId) return;
+
+    if (!canEdit) {
+      showToast('אין לך הרשאה לערוך מתכונים', 'error');
+      return;
+    }
+
+    const saveBtn = saveEditCategoryBtn;
+    const btnText = saveBtn.querySelector('.btn-text');
+    const btnLoading = saveBtn.querySelector('.btn-loading');
+
+    btnText.style.display = 'none';
+    btnLoading.style.display = 'inline';
+    saveBtn.disabled = true;
+
+    try {
+      const newCategory = editCategorySelect.value;
+      const selectedOption = editCategorySelect.selectedOptions[0];
+      const newMainCategory = selectedOption?.dataset.main;
+
+      // Update in Firestore
+      const recipe = recipes.find(r => r.id === currentRecipeId);
+      recipe.category = newCategory;
+      if (newMainCategory) {
+        recipe.mainCategory = newMainCategory;
+      }
+
+      await db.collection('recipes').doc(currentRecipeId).update({
+        category: newCategory,
+        mainCategory: newMainCategory || null
+      });
+
+      showToast('הקטגוריה עודכנה בהצלחה!', 'success');
+      closeEditCategoryModal();
+
+      // Refresh the recipe modal and recipes list
+      openRecipe(currentRecipeId);
+      renderRecipes();
+    } catch (error) {
+      console.error('Save category failed:', error);
+      showToast('שגיאה בשמירת הקטגוריה', 'error');
+    }
+
+    btnText.style.display = 'inline';
+    btnLoading.style.display = 'none';
+    saveBtn.disabled = false;
+  }
+
+  // Manage categories modal functions
+  function openManageCategoriesModal() {
+    renderCategoriesManager();
+    manageCategoriesModal.classList.add('active');
+  }
+
+  function closeManageCategoriesModal() {
+    manageCategoriesModal.classList.remove('active');
+  }
+
+  function renderCategoriesManager() {
+    const container = document.getElementById('categories-manager');
+    if (!container) return;
+
+    let html = '';
+    MAIN_CATEGORIES.forEach(mainCat => {
+      const subCats = SUB_CATEGORIES[mainCat.id] || [];
+      html += `
+        <div class="category-manager-section" data-main-category="${mainCat.id}">
+          <div class="category-manager-header">
+            <span class="category-manager-icon">${mainCat.icon}</span>
+            <span class="category-manager-name">${mainCat.name}</span>
+          </div>
+          <div class="sub-categories-list">
+            ${subCats.map(sub => `
+              <div class="sub-category-item">
+                <span>${sub.icon} ${sub.name}</span>
+              </div>
+            `).join('')}
+          </div>
+          <div class="add-sub-category-row">
+            <input type="text" class="sub-category-name-input" placeholder="שם תת-קטגוריה" data-main="${mainCat.id}">
+            <input type="text" class="sub-category-icon-input" placeholder="🍽️" maxlength="2" data-main="${mainCat.id}" style="width: 50px;">
+            <button class="btn btn-small add-sub-category-btn" data-main-category="${mainCat.id}">+</button>
+          </div>
+        </div>
+      `;
+    });
+
+    container.innerHTML = html;
+  }
+
+  async function addNewMainCategory() {
+    if (!canEdit) {
+      showToast('אין לך הרשאה לערוך קטגוריות', 'error');
+      return;
+    }
+
+    const nameInput = document.getElementById('new-main-category-name');
+    const iconInput = document.getElementById('new-main-category-icon');
+
+    const name = nameInput.value.trim();
+    const icon = iconInput.value.trim() || '📁';
+
+    if (!name) {
+      showToast('נא להזין שם לקטגוריה', 'error');
+      return;
+    }
+
+    // Generate ID from name
+    const id = name.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
+
+    if (MAIN_CATEGORIES.find(c => c.id === id)) {
+      showToast('קטגוריה עם שם זה כבר קיימת', 'error');
+      return;
+    }
+
+    // Add to local arrays
+    MAIN_CATEGORIES.push({ id, name, icon });
+    SUB_CATEGORIES[id] = [];
+
+    // Save to Firestore
+    try {
+      await db.collection('settings').doc('categories').set({
+        mainCategories: MAIN_CATEGORIES,
+        subCategories: SUB_CATEGORIES
+      }, { merge: true });
+
+      showToast('הקטגוריה נוספה בהצלחה!', 'success');
+      nameInput.value = '';
+      iconInput.value = '';
+
+      // Refresh UI
+      renderCategoriesManager();
+      renderCategories();
+      populateCategorySelect();
+    } catch (error) {
+      console.error('Add category failed:', error);
+      showToast('שגיאה בהוספת הקטגוריה', 'error');
+    }
+  }
+
+  async function addNewSubCategory(mainCatId) {
+    if (!canEdit) {
+      showToast('אין לך הרשאה לערוך קטגוריות', 'error');
+      return;
+    }
+
+    const nameInput = document.querySelector(`.sub-category-name-input[data-main="${mainCatId}"]`);
+    const iconInput = document.querySelector(`.sub-category-icon-input[data-main="${mainCatId}"]`);
+
+    const name = nameInput.value.trim();
+    const icon = iconInput.value.trim() || '🍽️';
+
+    if (!name) {
+      showToast('נא להזין שם לתת-קטגוריה', 'error');
+      return;
+    }
+
+    // Generate ID from name
+    const id = name.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
+
+    if (!SUB_CATEGORIES[mainCatId]) {
+      SUB_CATEGORIES[mainCatId] = [];
+    }
+
+    if (SUB_CATEGORIES[mainCatId].find(c => c.id === id)) {
+      showToast('תת-קטגוריה עם שם זה כבר קיימת', 'error');
+      return;
+    }
+
+    // Add to local array
+    SUB_CATEGORIES[mainCatId].push({ id, name, icon });
+
+    // Update CATEGORIES array
+    categories = Object.values(SUB_CATEGORIES).flat();
+
+    // Save to Firestore
+    try {
+      await db.collection('settings').doc('categories').set({
+        mainCategories: MAIN_CATEGORIES,
+        subCategories: SUB_CATEGORIES
+      }, { merge: true });
+
+      showToast('תת-הקטגוריה נוספה בהצלחה!', 'success');
+      nameInput.value = '';
+      iconInput.value = '';
+
+      // Refresh UI
+      renderCategoriesManager();
+      renderCategories();
+      populateCategorySelect();
+    } catch (error) {
+      console.error('Add sub-category failed:', error);
+      showToast('שגיאה בהוספת תת-הקטגוריה', 'error');
+    }
   }
 
   // Start app
