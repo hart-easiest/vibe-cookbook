@@ -506,7 +506,7 @@
     if (parveKeywords.some(k => combined.includes(k))) tags.push('parve');
 
     // Kid-friendly (baby food category or mentions kids)
-    if (recipe.category === 'baby' || combined.includes('ילדים') || combined.includes('תינוק')) {
+    if (recipe.mainCategory === 'baby' || recipe.category === 'baby' || recipe.category === 'baby-meals' || recipe.category === 'baby-snacks' || combined.includes('ילדים') || combined.includes('תינוק')) {
       tags.push('kid-friendly');
     }
 
