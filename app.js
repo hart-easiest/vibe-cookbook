@@ -735,27 +735,26 @@
       contentHtml += getVideoEmbed(recipe.content);
     }
 
-    // Text content
-    if (recipe.content?.text) {
-      contentHtml += `<div class="modal-text">${escapeHtml(recipe.content.text)}</div>`;
-    }
-
-    // Action buttons container (only show edit buttons if user can edit)
-    contentHtml += `<div class="recipe-action-buttons">`;
-
-    // Transcription or button to add one (for all recipes)
-    if (recipe.content?.transcription) {
+    // Text content (unified: check both text and transcription fields for backward compatibility)
+    const recipeText = recipe.content?.text || recipe.content?.transcription;
+    if (recipeText) {
       contentHtml += `
         <div class="transcription-box" style="width: 100%; margin-bottom: 12px;">
           <h4>📝 טקסט המתכון</h4>
-          <p>${escapeHtml(recipe.content.transcription)}</p>
+          <p>${escapeHtml(recipeText)}</p>
           ${canEdit ? `<button class="add-transcription-btn" data-action="edit-transcription" style="margin-top: 12px; background: #64748b;">
             ✏️ ערוך טקסט
           </button>` : ''}
         </div>
       `;
-    } else {
-      // Show extract button for link-type recipes without transcription
+    }
+
+    // Action buttons container (only show edit buttons if user can edit)
+    contentHtml += `<div class="recipe-action-buttons">`;
+
+    // Show add text buttons only if no text exists
+    if (!recipeText) {
+      // Show extract button for link-type recipes without text
       if (canEdit && recipe.type === 'link' && recipe.content?.url) {
         contentHtml += `
           <button class="extract-recipe-btn" data-action="extract-recipe">
@@ -766,7 +765,7 @@
       if (canEdit) {
         contentHtml += `
           <button class="add-transcription-btn" data-action="add-transcription">
-            📝 העלאת טקסט ידנית
+            📝 הוסף טקסט מתכון
           </button>
         `;
       }
@@ -1464,8 +1463,8 @@
     const recipe = recipes.find(r => r.id === currentRecipeId);
     if (!recipe) return;
 
-    // Pre-fill with existing transcription if editing
-    transcriptionText.value = recipe.content?.transcription || '';
+    // Pre-fill with existing text (check both fields for backward compatibility)
+    transcriptionText.value = recipe.content?.text || recipe.content?.transcription || '';
 
     transcriptionModal.classList.add('active');
   }
@@ -1498,13 +1497,13 @@
     saveBtn.disabled = true;
 
     try {
-      // Update in Firestore
+      // Update in Firestore (use content.text as the unified field)
       const recipe = recipes.find(r => r.id === currentRecipeId);
       if (!recipe.content) recipe.content = {};
-      recipe.content.transcription = text;
+      recipe.content.text = text;
 
       await db.collection('recipes').doc(currentRecipeId).update({
-        'content.transcription': text
+        'content.text': text
       });
 
       showToast('הטקסט נשמר בהצלחה!', 'success');
@@ -1513,7 +1512,7 @@
       // Refresh the recipe modal
       openRecipe(currentRecipeId);
     } catch (error) {
-      console.error('Save transcription failed:', error);
+      console.error('Save text failed:', error);
       showToast('שגיאה בשמירת הטקסט', 'error');
     }
 
@@ -1636,12 +1635,12 @@
       let recipeText = extractRecipeContent(doc, url);
 
       if (recipeText && recipeText.trim().length > 50) {
-        // Save the extracted text
+        // Save the extracted text (use content.text as the unified field)
         if (!recipe.content) recipe.content = {};
-        recipe.content.transcription = recipeText;
+        recipe.content.text = recipeText;
 
         await db.collection('recipes').doc(currentRecipeId).update({
-          'content.transcription': recipeText
+          'content.text': recipeText
         });
 
         showToast('המתכון חולץ בהצלחה!', 'success');
