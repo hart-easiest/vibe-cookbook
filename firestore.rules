@@ -9,7 +9,8 @@ service cloud.firestore {
                'taladani@gmail.com',
                'eliavschreiber@gmail.com',
                'dschreiber@gmail.com',
-               'gidonschreiber@gmail.com'
+               'gidonschreiber@gmail.com',
+               'egorlin@gmail.com'
              ];
     }
 

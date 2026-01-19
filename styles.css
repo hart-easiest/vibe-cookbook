@@ -1264,6 +1264,18 @@ body {
     border-bottom-color: var(--border-color);
   }
 
+  /* Fix category button text in dark mode when active */
+  .category-btn.active {
+    background: var(--accent-color);
+    color: #1a1a1a;
+    border-color: var(--accent-color);
+  }
+
+  .sub-category-btn.active {
+    background: var(--accent-color);
+    color: #1a1a1a;
+  }
+
   .tags-filter {
     background: var(--card-bg);
     border-bottom-color: var(--border-color);

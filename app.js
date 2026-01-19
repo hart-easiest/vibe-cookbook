@@ -35,7 +35,8 @@
     'taladani@gmail.com',
     'eliavschreiber@gmail.com',
     'dschreiber@gmail.com',
-    'gidonschreiber@gmail.com'
+    'gidonschreiber@gmail.com',
+    'egorlin@gmail.com'
   ];
 
   // Auth state
@@ -115,6 +116,8 @@
 
   // Tags definition
   const AVAILABLE_TAGS = [
+    { id: 'tal', name: 'Tal', icon: '👩‍🍳', color: '#e91e63', alwaysShow: true },
+    { id: 'einav', name: 'Einav', icon: '👩‍🍳', color: '#2196f3', alwaysShow: true },
     { id: 'vegetarian', name: 'צמחוני', icon: '🥬', color: '#22c55e' },
     { id: 'vegan', name: 'טבעוני', icon: '🌱', color: '#16a34a' },
     { id: 'gluten-free', name: 'ללא גלוטן', icon: '🌾', color: '#eab308' },
@@ -126,6 +129,12 @@
     { id: 'comfort-food', name: 'אוכל נוחות', icon: '🏠', color: '#f59e0b' },
     { id: 'special-occasion', name: 'לאירועים', icon: '🎉', color: '#a855f7' }
   ];
+
+  // Email to tag mapping for auto-tagging
+  const EMAIL_TO_TAG = {
+    'taladani@gmail.com': 'tal',
+    'egorlin@gmail.com': 'einav'
+  };
 
   // DOM Elements
   const searchInput = document.getElementById('search-input');
@@ -506,7 +515,7 @@
     return tags;
   }
 
-  // Render tag filter pills - only show tags that have at least one recipe
+  // Render tag filter pills - show tags with recipes OR tags marked as alwaysShow
   function renderTagFilters() {
     const container = document.getElementById('tags-filter-pills');
     if (!container) return;
@@ -524,10 +533,10 @@
       });
     });
 
-    // Only show tags that have at least one recipe
-    const tagsWithRecipes = AVAILABLE_TAGS.filter(tag => tagCounts[tag.id] > 0);
+    // Show tags that have at least one recipe OR are marked as alwaysShow
+    const tagsToShow = AVAILABLE_TAGS.filter(tag => tagCounts[tag.id] > 0 || tag.alwaysShow);
 
-    container.innerHTML = tagsWithRecipes.map(tag => `
+    container.innerHTML = tagsToShow.map(tag => `
       <button class="tag-filter-pill ${currentTags.includes(tag.id) ? 'active' : ''}"
               data-tag="${tag.id}"
               style="--tag-color: ${tag.color}">
@@ -1034,13 +1043,30 @@
     submitBtn.disabled = true;
 
     try {
+      // Auto-generate tags based on recipe content
+      const autoTags = autoTagRecipe({
+        name: formData.name,
+        content: formData.content,
+        notes: formData.notes
+      });
+
+      // Add user-specific tag based on who is adding the recipe
+      if (currentUser && EMAIL_TO_TAG[currentUser.email]) {
+        const userTag = EMAIL_TO_TAG[currentUser.email];
+        if (!autoTags.includes(userTag)) {
+          autoTags.unshift(userTag); // Add user tag at the beginning
+        }
+      }
+
       const newRecipe = {
         name: formData.name,
         category: formData.category,
         type: formData.type,
         date: new Date().toISOString().split('T')[0],
         content: formData.content,
-        notes: formData.notes || ''
+        notes: formData.notes || '',
+        tags: autoTags,
+        addedBy: currentUser?.email || null
       };
 
       // Generate ID first
@@ -1049,6 +1075,7 @@
 
       // Update local state
       recipes.unshift(newRecipe);
+      renderTagFilters();
       renderRecipes();
 
       showToast('המתכון נוסף בהצלחה!', 'success');
