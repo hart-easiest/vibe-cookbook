@@ -203,13 +203,18 @@
       </div>
     </div>
 
-    <!-- Edit Category Modal -->
+    <!-- Edit Recipe Details Modal -->
     <div class="modal" id="edit-category-modal">
       <div class="modal-content transcription-modal-content">
         <button class="modal-close" id="edit-category-modal-close">&times;</button>
         <div class="modal-body">
-          <h2 class="modal-title">📂 שנה קטגוריה</h2>
-          <p class="modal-subtitle">בחרי קטגוריה חדשה למתכון</p>
+          <h2 class="modal-title">✏️ ערוך פרטי מתכון</h2>
+          <p class="modal-subtitle">עדכני את שם המתכון והקטגוריה</p>
+
+          <div class="form-group">
+            <label for="edit-recipe-name">שם המתכון</label>
+            <input type="text" id="edit-recipe-name" placeholder="שם המתכון">
+          </div>
 
           <div class="form-group">
             <label for="edit-category-select">קטגוריה</label>
@@ -221,7 +226,7 @@
           <div class="form-actions">
             <button type="button" class="btn btn-secondary" id="cancel-edit-category">ביטול</button>
             <button type="button" class="btn btn-primary" id="save-edit-category">
-              <span class="btn-text">שמור קטגוריה</span>
+              <span class="btn-text">שמור שינויים</span>
               <span class="btn-loading" style="display:none;">שומר...</span>
             </button>
           </div>

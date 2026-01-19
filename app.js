@@ -176,6 +176,7 @@
   const cancelEditCategoryBtn = document.getElementById('cancel-edit-category');
   const saveEditCategoryBtn = document.getElementById('save-edit-category');
   const editCategorySelect = document.getElementById('edit-category-select');
+  const editRecipeNameInput = document.getElementById('edit-recipe-name');
   const manageCategoriesModal = document.getElementById('manage-categories-modal');
   const manageCategoriesModalClose = document.getElementById('manage-categories-modal-close');
   const closeManageCategoriesBtn = document.getElementById('close-manage-categories');
@@ -780,7 +781,7 @@
           🏷️ ערוך תגיות
         </button>
         <button class="edit-category-btn" data-action="edit-category">
-          📂 שנה קטגוריה
+          ✏️ ערוך פרטים
         </button>
       `;
     }
@@ -1906,10 +1907,13 @@
     closeSettingsModal();
   }
 
-  // Edit category modal functions
+  // Edit recipe details modal functions
   function openEditCategoryModal() {
     const recipe = recipes.find(r => r.id === currentRecipeId);
     if (!recipe) return;
+
+    // Pre-fill the recipe name
+    editRecipeNameInput.value = recipe.name || '';
 
     // Populate the select with hierarchical categories
     let html = '';
@@ -1941,6 +1945,12 @@
       return;
     }
 
+    const newName = editRecipeNameInput.value.trim();
+    if (!newName) {
+      showToast('יש להזין שם למתכון', 'error');
+      return;
+    }
+
     const saveBtn = saveEditCategoryBtn;
     const btnText = saveBtn.querySelector('.btn-text');
     const btnLoading = saveBtn.querySelector('.btn-loading');
@@ -1956,25 +1966,27 @@
 
       // Update in Firestore
       const recipe = recipes.find(r => r.id === currentRecipeId);
+      recipe.name = newName;
       recipe.category = newCategory;
       if (newMainCategory) {
         recipe.mainCategory = newMainCategory;
       }
 
       await db.collection('recipes').doc(currentRecipeId).update({
+        name: newName,
         category: newCategory,
         mainCategory: newMainCategory || null
       });
 
-      showToast('הקטגוריה עודכנה בהצלחה!', 'success');
+      showToast('הפרטים עודכנו בהצלחה!', 'success');
       closeEditCategoryModal();
 
       // Refresh the recipe modal and recipes list
       openRecipe(currentRecipeId);
       renderRecipes();
     } catch (error) {
-      console.error('Save category failed:', error);
-      showToast('שגיאה בשמירת הקטגוריה', 'error');
+      console.error('Save recipe details failed:', error);
+      showToast('שגיאה בשמירת הפרטים', 'error');
     }
 
     btnText.style.display = 'inline';

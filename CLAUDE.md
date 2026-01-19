@@ -1,6 +1,6 @@
 # Tal's Cookbook App
 
-A beautiful Hebrew recipe cookbook web app that displays recipes from various sources including Instagram, YouTube, Facebook, and text entries.
+Hebrew recipe cookbook web app with recipes from Instagram, YouTube, Facebook, and text entries.
 
 ## Links
 
@@ -10,173 +10,57 @@ A beautiful Hebrew recipe cookbook web app that displays recipes from various so
 
 ## Tech Stack
 
-- **Frontend**: Vanilla HTML, CSS, JavaScript
-- **Database**: Firebase Firestore
-- **Authentication**: Firebase Auth (Google Sign-in)
-- **Hosting**: GitHub Pages
-- **Fonts**: Rubik (body) + Assistant (headings) from Google Fonts
-- **PWA**: iOS home screen pinnable with app-like experience
-- **RTL Support**: Full Hebrew right-to-left layout
+Vanilla HTML/CSS/JS, Firebase Firestore + Auth, GitHub Pages hosting, RTL Hebrew layout.
 
-## Project Structure
+## Key Files
 
-```
-/Tal Cooking/
-├── index.html              # Main app HTML with modals
-├── styles.css              # RTL-aware responsive styling (Editorial theme)
-├── app.js                  # App logic, Firebase integration, UI
-├── recipes.json            # Original recipe data (backup)
-├── firestore.rules         # Firestore security rules (email whitelist)
-├── firebase.json           # Firebase project configuration
-├── update-descriptions.js  # Script to batch update Firebase transcriptions
-├── update-recipe-names.js  # Script to rename "מתכון מאינסטגרם" recipes
-├── extract-recipes.js      # Script to extract recipe text from external links
-└── CLAUDE.md               # This file
-```
+| File | Purpose |
+|------|---------|
+| `app.js` | Main app logic, Firebase integration |
+| `batch-extract.js` | Browser console script: `batchExtract(20)` |
+| `restore-tags.js` | Browser console script: `restoreTags()` |
 
-## Features
+## Authorized Editors
 
-### Category System (Hierarchical)
-- **Main Categories**: ארוחת בוקר, צהריים וערב, קינוח, חטיפים ונשנושים, אוכל לתינוקות
-- **Sub-categories**: Each main category has specific sub-categories
-- Recipe cards display full hierarchy: "Main > Sub" format
-- Legacy category mapping ensures backward compatibility
+taladani@gmail.com, eliavschreiber@gmail.com, dschreiber@gmail.com, gidonschreiber@gmail.com, egorlin@gmail.com
 
-### Tagging System
-- 10 available tags: צמחוני, טבעוני, ללא גלוטן, ללא חלב, פרווה, מהיר, לילדים, בריא, אוכל נוחות, לאירועים
-- Auto-tagging based on recipe content analysis
-- Manual tag editing per recipe
-- Tag filter shows only tags with at least one recipe (with count)
+## Architecture
 
-### Recipe Management
-- Add recipes via URL (Instagram, YouTube, TikTok, Facebook, external sites)
-- Add recipes via text entry
-- Manual text upload for recipe instructions
-- Automatic recipe extraction from external website links
-- Delete recipes
-- Search across names, notes, and transcriptions
+### Categories
+Hierarchical: Main (breakfast, lunch-dinner, dessert, snacks, baby) → Sub-categories
 
-> **Note**: Image upload was disabled because it requires Firebase Storage on a paid plan (Blaze). Existing local images in the `images/` folder will still display.
+### Tags
+- **Person tags** (always visible): `tal`, `einav` - auto-assigned based on logged-in user
+- **Auto-detected tags**: vegetarian, vegan, gluten-free, parve, kid-friendly, quick, healthy
+- Tags stored in Firebase `recipe.tags[]` array
 
-### Authentication & Security
-- Google Sign-in authentication
-- Email whitelist for edit permissions
-- Public read access (anyone can view recipes)
-- Write access restricted to authorized users only
+### Recipe Text
+- Unified field: `content.text` (reads from `content.transcription` for backward compat)
+- New text always saves to `content.text`
 
-### Authorized Editors
-- taladani@gmail.com
-- eliavschreiber@gmail.com
-- dschreiber@gmail.com
-- gidonschreiber@gmail.com
+## Known Limitations
 
-### External Links
-- Branded cards for known recipe websites (16+ sites)
-- Site-specific icons and colors
-- Fallback display for unknown sites
+### Recipe Extraction
+- Only works for sites with JSON-LD Recipe schema or common CSS selectors
+- Most Hebrew sites (matkonia.co.il, oogio.net, etc.) fail extraction
+- CORS proxies unreliable
+- **Workaround**: Manual text entry via "הוסף טקסט מתכון" button
 
-## Category Hierarchy
+### Social Media
+- Instagram/Facebook/YouTube/TikTok require manual text entry (29 recipes affected)
 
-### Main Categories
-| ID | Hebrew Name | Icon |
-|----|-------------|------|
-| breakfast | ארוחת בוקר | 🌅 |
-| lunch-dinner | צהריים וערב | 🍽️ |
-| dessert | קינוח | 🍰 |
-| snacks | חטיפים ונשנושים | 🥨 |
-| baby | אוכל לתינוקות | 👶 |
+## Recipe Stats (Jan 2025)
 
-### Sub-Categories
-- **breakfast**: פנקייקים ווופלים, גרנולה ודגנים, ביצים ואומלטים, מאפים מתוקים
-- **lunch-dinner**: מנות עיקריות, מרקים, סלטים ותוספות, מאפים מלוחים, פסטות, ממרחים ורטבים
-- **dessert**: עוגות וקינוחים, עוגיות, מאפי שמרים, מאפינס
-- **snacks**: חטיפים מתוקים, חטיפים מלוחים
-- **baby**: ארוחות לתינוקות, חטיפים לתינוקות
+149 total | 45 with text | 62 websites without | 29 social media without
 
-## Available Tags
+## Deployment
 
-| ID | Hebrew Name | Icon | Color |
-|----|-------------|------|-------|
-| vegetarian | צמחוני | 🥬 | #22c55e |
-| vegan | טבעוני | 🌱 | #16a34a |
-| gluten-free | ללא גלוטן | 🌾 | #eab308 |
-| dairy-free | ללא חלב | 🥛 | #06b6d4 |
-| parve | פרווה | ✡️ | #8b5cf6 |
-| quick | מהיר | ⚡ | #f97316 |
-| kid-friendly | לילדים | 👶 | #ec4899 |
-| healthy | בריא | 💚 | #10b981 |
-| comfort-food | אוכל נוחות | 🏠 | #f59e0b |
-| special-occasion | לאירועים | 🎉 | #a855f7 |
-
-## Known Recipe Websites
-
-The app recognizes and displays branded cards for these sites:
-- **Hebrew**: אוגיו, תרנגולת במטבח, ליכטנשטט, קארין גורן, בייקרי 365, השולחן, פודיש, 10 דקות, סוויט מיט, גיל מורן
-- **English**: The Kitchn, Serious Eats, Bon Appétit, Allrecipes, Tasty, Delish
-
-## Recipes with Extracted Descriptions
-
-19 recipes have full transcriptions saved in Firebase (extracted from Instagram):
-
-### Batch 1
-| ID | Recipe Name |
-|----|-------------|
-| 31 | פנקייק חלבה ללא גלוטן |
-| 56 | רולים של שמרים פרווה במילוי חלבה ופיסטוק |
-| 57 | סיר פרגיות עם ירקות |
-| 64 | סינבון של גיל מורן |
-| 73 | פנקייק סינבון |
-| 88 | עוגת שמרים פרווה של אמא של חן קורן |
-| 107 | סיר פרגיות חורפי עם פטריות וערמונים |
-| 135 | קציצות סלמון-בטטה לתינוקות וילדים |
-
-### Batch 2
-| ID | Recipe Name |
-|----|-------------|
-| 1 | לחמניות קורנפלור ממולאות בשר |
-| 4 | לחמניות שום ממולאות במוצרלה |
-| 5 | אסאדו ותפוחי אדמה ברוטב סילאן |
-| 90 | סטייק כרובית מליון דולר |
-| 113 | האורז שמתחת לעוף |
-| 115 | פילה סלמון עסיסי בטאבון |
-| 128 | סמאש בורגר טורטייה |
-| 133 | סלמון בטריאקי מהטאבון |
-| 134 | רוזלך שוקולד |
-| 140 | חטיף בייגלה ושוקולד |
-| 148 | סיר קינואה עם ירקות וחלבון |
-
-## Development Notes
-
-### Deployment
 ```bash
-git add .
-git commit -m "Description"
-git push origin main
+git add . && git commit -m "msg" && git push origin main
 ```
-GitHub Pages automatically deploys from the main branch.
 
-### Helper Scripts
-- `update-descriptions.js` - Batch update recipe transcriptions in Firebase
-- `update-recipe-names.js` - Rename recipes from "מתכון מאינסטגרם" to proper names
-- `extract-recipes.js` - Extract recipe text from external website links (run in browser console)
+## Future Work
 
-### Deploying Security Rules
-To deploy Firestore security rules:
-1. Install Firebase CLI: `npm install -g firebase-tools`
-2. Login: `firebase login`
-3. Deploy rules: `firebase deploy --only firestore:rules`
-
-## Future Improvements
-
-- [ ] Automatic transcription using OpenAI Whisper API
-- [ ] Image upload for photo recipes (requires Firebase Blaze plan)
-- [x] Hierarchical category system
-- [x] Tagging system with auto-tagging
-- [x] Tag editing per recipe
-- [x] External recipe website branding
-- [x] Authentication with Google Sign-in
-- [x] Email whitelist for edit permissions
-- [ ] Recipe sharing functionality
-- [ ] Print-friendly recipe view
-- [ ] Ingredient scaling calculator
-- [ ] Shopping list generation
+- [ ] Server-side recipe extraction (requires moving off GitHub Pages)
+- [ ] OpenAI Whisper for video transcription
+- [ ] Image upload (requires Firebase Blaze plan)
