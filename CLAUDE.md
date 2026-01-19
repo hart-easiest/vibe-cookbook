@@ -38,6 +38,11 @@ Hierarchical: Main (breakfast, lunch-dinner, dessert, snacks, baby) → Sub-cate
 - Unified field: `content.text` (reads from `content.transcription` for backward compat)
 - New text always saves to `content.text`
 
+### Editing (Authorized Users)
+- **Edit Details**: Change recipe name and sub-category via "✏️ ערוך פרטים" button
+- **Edit Tags**: Modify recipe tags via "🏷️ ערוך תגיות" button
+- **Edit Text**: Add/edit recipe text via "📝" buttons
+
 ## Known Limitations
 
 ### Recipe Extraction
