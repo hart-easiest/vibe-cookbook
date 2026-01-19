@@ -16,7 +16,8 @@ Vanilla HTML/CSS/JS, Firebase Firestore + Auth, GitHub Pages hosting, RTL Hebrew
 
 | File | Purpose |
 |------|---------|
-| `app.js` | Main app logic, Firebase integration |
+| `app.js` | Main app logic, Firebase integration, theme toggle |
+| `styles.css` | Mediterranean Kitchen design system, dark mode |
 | `batch-extract.js` | Browser console script: `batchExtract(20)` |
 | `restore-tags.js` | Browser console script: `restoreTags()` |
 
@@ -26,8 +27,15 @@ taladani@gmail.com, eliavschreiber@gmail.com, dschreiber@gmail.com, gidonschreib
 
 ## Architecture
 
+### Design System (Jan 2025)
+- **Aesthetic**: Mediterranean Kitchen - terracotta/earth palette, Heebo + Playfair Display fonts
+- **Dark mode**: Manual toggle (light/dark/auto) in settings, uses CSS variables
+- **Mobile**: Fully responsive with compact layout at 600px breakpoint
+
 ### Categories
 Hierarchical: Main (breakfast, lunch-dinner, dessert, snacks, baby) → Sub-categories
+- Editors can add/delete categories and sub-categories via Settings
+- Deletion blocked if recipes exist in category
 
 ### Tags
 - **Person tags** (always visible): `tal`, `einav` - auto-assigned based on logged-in user
@@ -42,6 +50,7 @@ Hierarchical: Main (breakfast, lunch-dinner, dessert, snacks, baby) → Sub-cate
 - **Edit Details**: Change recipe name and sub-category via "✏️ ערוך פרטים" button
 - **Edit Tags**: Modify recipe tags via "🏷️ ערוך תגיות" button
 - **Edit Text**: Add/edit recipe text via "📝" buttons
+- **Category Management**: Settings → only visible to authorized editors
 
 ## Known Limitations
 
@@ -53,6 +62,10 @@ Hierarchical: Main (breakfast, lunch-dinner, dessert, snacks, baby) → Sub-cate
 
 ### Social Media
 - Instagram/Facebook/YouTube/TikTok require manual text entry (29 recipes affected)
+
+### Private Browsing
+- localStorage unavailable - theme preferences won't persist
+- Firebase persistence disabled - recipes load fresh from Firestore each time
 
 ## Recipe Stats (Jan 2025)
 
