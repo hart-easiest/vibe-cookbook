@@ -118,16 +118,16 @@
   const AVAILABLE_TAGS = [
     { id: 'tal', name: 'Tal', icon: '👩‍🍳', color: '#e91e63', alwaysShow: true },
     { id: 'einav', name: 'Einav', icon: '👩‍🍳', color: '#2196f3', alwaysShow: true },
-    { id: 'vegetarian', name: 'צמחוני', icon: '🥬', color: '#22c55e', alwaysShow: true },
-    { id: 'vegan', name: 'טבעוני', icon: '🌱', color: '#16a34a', alwaysShow: true },
-    { id: 'gluten-free', name: 'ללא גלוטן', icon: '🌾', color: '#eab308', alwaysShow: true },
-    { id: 'dairy-free', name: 'ללא חלב', icon: '🥛', color: '#06b6d4', alwaysShow: true },
-    { id: 'parve', name: 'פרווה', icon: '✡️', color: '#8b5cf6', alwaysShow: true },
-    { id: 'quick', name: 'מהיר', icon: '⚡', color: '#f97316', alwaysShow: true },
-    { id: 'kid-friendly', name: 'לילדים', icon: '👶', color: '#ec4899', alwaysShow: true },
-    { id: 'healthy', name: 'בריא', icon: '💚', color: '#10b981', alwaysShow: true },
-    { id: 'comfort-food', name: 'אוכל נוחות', icon: '🏠', color: '#f59e0b', alwaysShow: true },
-    { id: 'special-occasion', name: 'לאירועים', icon: '🎉', color: '#a855f7', alwaysShow: true }
+    { id: 'vegetarian', name: 'צמחוני', icon: '🥬', color: '#22c55e' },
+    { id: 'vegan', name: 'טבעוני', icon: '🌱', color: '#16a34a' },
+    { id: 'gluten-free', name: 'ללא גלוטן', icon: '🌾', color: '#eab308' },
+    { id: 'dairy-free', name: 'ללא חלב', icon: '🥛', color: '#06b6d4' },
+    { id: 'parve', name: 'פרווה', icon: '✡️', color: '#8b5cf6' },
+    { id: 'quick', name: 'מהיר', icon: '⚡', color: '#f97316' },
+    { id: 'kid-friendly', name: 'לילדים', icon: '👶', color: '#ec4899' },
+    { id: 'healthy', name: 'בריא', icon: '💚', color: '#10b981' },
+    { id: 'comfort-food', name: 'אוכל נוחות', icon: '🏠', color: '#f59e0b' },
+    { id: 'special-occasion', name: 'לאירועים', icon: '🎉', color: '#a855f7' }
   ];
 
   // Email to tag mapping for auto-tagging
