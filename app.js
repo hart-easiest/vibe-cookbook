@@ -1431,12 +1431,28 @@
     // Add main category button
     document.getElementById('add-main-category-btn')?.addEventListener('click', addNewMainCategory);
 
-    // Add sub-category buttons (delegated)
+    // Category manager buttons (delegated)
     document.getElementById('categories-manager')?.addEventListener('click', (e) => {
       const addSubBtn = e.target.closest('.add-sub-category-btn');
       if (addSubBtn) {
         const mainCatId = addSubBtn.dataset.mainCategory;
         addNewSubCategory(mainCatId);
+        return;
+      }
+
+      const deleteSubBtn = e.target.closest('.delete-sub-category-btn');
+      if (deleteSubBtn) {
+        const subId = deleteSubBtn.dataset.subId;
+        const mainId = deleteSubBtn.dataset.mainId;
+        deleteSubCategory(mainId, subId);
+        return;
+      }
+
+      const deleteMainBtn = e.target.closest('.delete-main-category-btn');
+      if (deleteMainBtn) {
+        const mainCatId = deleteMainBtn.dataset.mainCategory;
+        deleteMainCategory(mainCatId);
+        return;
       }
     });
 
@@ -2063,11 +2079,13 @@
           <div class="category-manager-header">
             <span class="category-manager-icon">${mainCat.icon}</span>
             <span class="category-manager-name">${mainCat.name}</span>
+            <button class="delete-main-category-btn" data-main-category="${mainCat.id}" title="מחק קטגוריה">🗑️</button>
           </div>
           <div class="sub-categories-list">
             ${subCats.map(sub => `
-              <div class="sub-category-item">
+              <div class="sub-category-item" data-sub-id="${sub.id}" data-main-id="${mainCat.id}">
                 <span>${sub.icon} ${sub.name}</span>
+                <button class="delete-sub-category-btn" data-sub-id="${sub.id}" data-main-id="${mainCat.id}" title="מחק">×</button>
               </div>
             `).join('')}
           </div>
@@ -2186,6 +2204,94 @@
     } catch (error) {
       console.error('Add sub-category failed:', error);
       showToast('שגיאה בהוספת תת-הקטגוריה', 'error');
+    }
+  }
+
+  async function deleteSubCategory(mainCatId, subCatId) {
+    if (!canEdit) {
+      showToast('אין לך הרשאה לערוך קטגוריות', 'error');
+      return;
+    }
+
+    // Check if any recipes use this category
+    const recipesInCategory = recipes.filter(r => r.category === subCatId);
+    if (recipesInCategory.length > 0) {
+      showToast(`לא ניתן למחוק - יש ${recipesInCategory.length} מתכונים בקטגוריה זו`, 'error');
+      return;
+    }
+
+    if (!confirm('למחוק את תת-הקטגוריה?')) return;
+
+    // Remove from local array
+    SUB_CATEGORIES[mainCatId] = SUB_CATEGORIES[mainCatId].filter(c => c.id !== subCatId);
+
+    // Update CATEGORIES array
+    categories = Object.values(SUB_CATEGORIES).flat();
+
+    // Save to Firestore
+    try {
+      await db.collection('settings').doc('categories').set({
+        mainCategories: MAIN_CATEGORIES,
+        subCategories: SUB_CATEGORIES
+      }, { merge: true });
+
+      showToast('תת-הקטגוריה נמחקה', 'success');
+
+      // Refresh UI
+      renderCategoriesManager();
+      renderCategories();
+      populateCategorySelect();
+    } catch (error) {
+      console.error('Delete sub-category failed:', error);
+      showToast('שגיאה במחיקת תת-הקטגוריה', 'error');
+    }
+  }
+
+  async function deleteMainCategory(mainCatId) {
+    if (!canEdit) {
+      showToast('אין לך הרשאה לערוך קטגוריות', 'error');
+      return;
+    }
+
+    // Check if any recipes use any sub-category in this main category
+    const subCats = SUB_CATEGORIES[mainCatId] || [];
+    const subCatIds = subCats.map(s => s.id);
+    const recipesInCategory = recipes.filter(r => subCatIds.includes(r.category));
+
+    if (recipesInCategory.length > 0) {
+      showToast(`לא ניתן למחוק - יש ${recipesInCategory.length} מתכונים בקטגוריה זו`, 'error');
+      return;
+    }
+
+    const mainCat = MAIN_CATEGORIES.find(c => c.id === mainCatId);
+    if (!confirm(`למחוק את הקטגוריה "${mainCat?.name}"?`)) return;
+
+    // Remove from local arrays
+    const index = MAIN_CATEGORIES.findIndex(c => c.id === mainCatId);
+    if (index > -1) {
+      MAIN_CATEGORIES.splice(index, 1);
+    }
+    delete SUB_CATEGORIES[mainCatId];
+
+    // Update CATEGORIES array
+    categories = Object.values(SUB_CATEGORIES).flat();
+
+    // Save to Firestore
+    try {
+      await db.collection('settings').doc('categories').set({
+        mainCategories: MAIN_CATEGORIES,
+        subCategories: SUB_CATEGORIES
+      });
+
+      showToast('הקטגוריה נמחקה', 'success');
+
+      // Refresh UI
+      renderCategoriesManager();
+      renderCategories();
+      populateCategorySelect();
+    } catch (error) {
+      console.error('Delete main category failed:', error);
+      showToast('שגיאה במחיקת הקטגוריה', 'error');
     }
   }
 
