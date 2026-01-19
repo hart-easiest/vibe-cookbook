@@ -15,6 +15,18 @@
   // Initialize Firebase
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
+
+  // Enable offline persistence for faster loads
+  db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
+    if (err.code === 'failed-precondition') {
+      // Multiple tabs open, persistence can only be enabled in one tab at a time
+      console.log('Persistence failed: multiple tabs open');
+    } else if (err.code === 'unimplemented') {
+      // Browser doesn't support persistence
+      console.log('Persistence not supported');
+    }
+  });
+
   // Storage removed - requires paid Firebase plan
   const auth = firebase.auth();
 
@@ -258,42 +270,61 @@
     showLoading(true);
     categories = CATEGORIES;
 
-    // Setup auth first
+    // Setup auth (non-blocking)
     setupAuth();
 
-    try {
-      // Check if Firestore has data
-      const snapshot = await db.collection('recipes').limit(1).get();
+    // Setup UI immediately
+    renderCategories();
+    populateCategorySelect();
+    setupEventListeners();
 
-      if (snapshot.empty) {
-        // First time - migrate from JSON
-        console.log('Migrating recipes to Firebase...');
-        await migrateFromJSON();
+    try {
+      // Try to load from localStorage cache first for instant display
+      const cached = localStorage.getItem('recipes_cache');
+      const cacheTime = localStorage.getItem('recipes_cache_time');
+      const cacheAge = cacheTime ? Date.now() - parseInt(cacheTime) : Infinity;
+
+      if (cached && cacheAge < 5 * 60 * 1000) { // Cache valid for 5 minutes
+        recipes = JSON.parse(cached);
+        renderTagFilters();
+        renderRecipes();
+        showLoading(false);
+
+        // Refresh from Firestore in background
+        loadRecipesFromFirestore().then(() => {
+          renderTagFilters();
+          renderRecipes();
+        }).catch(() => {});
+      } else {
+        // Load from Firestore
+        await loadRecipesFromFirestore();
+        renderTagFilters();
+        renderRecipes();
+        showLoading(false);
       }
 
-      // Load recipes from Firestore
-      await loadRecipes();
-
-      renderCategories();
-      renderTagFilters();
-      populateCategorySelect();
-      renderRecipes();
-      setupEventListeners();
       isInitialized = true;
     } catch (error) {
       console.error('Failed to initialize:', error);
-      showToast('שגיאה בטעינת המתכונים', 'error');
 
-      // Fallback to JSON
+      // Try cache even if expired
+      const cached = localStorage.getItem('recipes_cache');
+      if (cached) {
+        recipes = JSON.parse(cached);
+        renderTagFilters();
+        renderRecipes();
+        showLoading(false);
+        return;
+      }
+
+      // Fallback to JSON file
       try {
         const response = await fetch('recipes.json');
         const data = await response.json();
         recipes = data.recipes;
         categories = data.categories || CATEGORIES;
-        renderCategories();
-        populateCategorySelect();
+        renderTagFilters();
         renderRecipes();
-        setupEventListeners();
       } catch (e) {
         recipesContainer.innerHTML = `
           <div class="empty-state">
@@ -302,34 +333,30 @@
           </div>
         `;
       }
-    }
-
-    showLoading(false);
-  }
-
-  // Migrate recipes from JSON to Firestore
-  async function migrateFromJSON() {
-    try {
-      const response = await fetch('recipes.json');
-      const data = await response.json();
-
-      const batch = db.batch();
-      data.recipes.forEach(recipe => {
-        const docRef = db.collection('recipes').doc(recipe.id);
-        batch.set(docRef, recipe);
-      });
-
-      await batch.commit();
-      console.log('Migration complete!');
-    } catch (error) {
-      console.error('Migration failed:', error);
+      showLoading(false);
     }
   }
 
-  // Load recipes from Firestore
-  async function loadRecipes() {
-    const snapshot = await db.collection('recipes').orderBy('date', 'desc').get();
+  // Load recipes from Firestore with caching
+  async function loadRecipesFromFirestore() {
+    // Use a simple query without orderBy to avoid index requirements
+    const snapshot = await db.collection('recipes').get();
     recipes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    // Sort client-side (faster than waiting for Firestore index)
+    recipes.sort((a, b) => {
+      if (!a.date) return 1;
+      if (!b.date) return -1;
+      return b.date.localeCompare(a.date);
+    });
+
+    // Cache for next load
+    try {
+      localStorage.setItem('recipes_cache', JSON.stringify(recipes));
+      localStorage.setItem('recipes_cache_time', Date.now().toString());
+    } catch (e) {
+      // localStorage might be full, ignore
+    }
   }
 
   // Show/hide loading
