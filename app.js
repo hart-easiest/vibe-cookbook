@@ -16,24 +16,9 @@
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
 
-  // Enable offline persistence for faster loads (optional - fails gracefully in private browsing)
-  try {
-    db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
-      if (err.code === 'failed-precondition') {
-        // Multiple tabs open, persistence can only be enabled in one tab at a time
-        console.log('Persistence failed: multiple tabs open');
-      } else if (err.code === 'unimplemented') {
-        // Browser doesn't support persistence
-        console.log('Persistence not supported');
-      } else {
-        // Other errors (e.g., Safari private mode, quota exceeded)
-        console.log('Persistence error:', err.code, err.message);
-      }
-    });
-  } catch (e) {
-    // Synchronous errors (shouldn't happen, but just in case)
-    console.log('Persistence setup error:', e);
-  }
+  // Skip persistence entirely - it causes issues in private browsing
+  // and we want fresh data from Firestore anyway
+  // Firestore will still work, just without offline caching
 
   // Storage removed - requires paid Firebase plan
   const auth = firebase.auth();
@@ -357,11 +342,12 @@
     } catch (error) {
       console.error('Failed to load from Firestore:', error);
 
-      // Try expired cache
+      // Try expired cache as last resort (better than nothing)
       if (cached) {
         try {
           recipes = JSON.parse(cached);
           if (recipes && recipes.length > 0) {
+            console.log('Using expired cache as fallback');
             renderTagFilters();
             renderRecipes();
             showLoading(false);
@@ -371,23 +357,13 @@
         } catch (e) {}
       }
 
-      // Fallback to JSON file
-      try {
-        const response = await fetch('recipes.json');
-        const data = await response.json();
-        recipes = data.recipes || [];
-        renderTagFilters();
-        renderRecipes();
-        isInitialized = true;
-      } catch (e) {
-        console.error('Failed to load JSON:', e);
-        recipesContainer.innerHTML = `
-          <div class="empty-state">
-            <div class="empty-state-icon">😕</div>
-            <p class="empty-state-text">לא הצלחנו לטעון את המתכונים</p>
-          </div>
-        `;
-      }
+      // No cache available - show error (don't use stale recipes.json)
+      recipesContainer.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">😕</div>
+          <p class="empty-state-text">לא הצלחנו לטעון את המתכונים. נסו לרענן את הדף.</p>
+        </div>
+      `;
     }
 
     showLoading(false);
