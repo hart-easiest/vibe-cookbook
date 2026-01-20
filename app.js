@@ -16,6 +16,15 @@
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
 
+  // Fix for Safari/iOS PWA timeout issue
+  // See: https://github.com/firebase/firebase-js-sdk/issues/8017
+  // useFetchStreams: false falls back to XMLHttpRequest instead of fetch streams
+  // experimentalForceLongPolling: true avoids WebChannel issues on iOS
+  db.settings({
+    experimentalForceLongPolling: true,
+    useFetchStreams: false
+  });
+
   // Skip persistence entirely - it causes issues in private browsing
   // and we want fresh data from Firestore anyway
   // Firestore will still work, just without offline caching
