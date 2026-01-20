@@ -73,9 +73,17 @@ Hierarchical: Main (breakfast, lunch-dinner, dessert, snacks, baby) → Sub-cate
 
 ## Deployment
 
+iOS PWA aggressively caches files. To ensure updates reach users, CSS/JS use `?v=VERSION_HASH` query params. The deploy command auto-replaces this with the git commit hash:
+
 ```bash
-git add . && git commit -m "msg" && git push origin main
+# Deploy with cache-busting (required for PWA updates)
+HASH=$(git rev-parse --short HEAD) && \
+sed -i '' "s/VERSION_HASH/$HASH/g" index.html && \
+git add . && git commit -m "msg" && git push origin main && \
+git checkout -- index.html
 ```
+
+The final `git checkout` restores `VERSION_HASH` placeholder for next deploy.
 
 ## Future Work
 
