@@ -324,7 +324,11 @@
           loadRecipesFromFirestore().then(() => {
             renderTagFilters();
             renderRecipes();
-          }).catch(console.error);
+          }).catch(error => {
+            console.error('Background Firestore refresh failed:', error);
+            // Show stale data warning since we're displaying cached data
+            showStaleBanner();
+          });
 
           isInitialized = true;
           return;
@@ -394,27 +398,45 @@
 
   // Load recipes from Firestore with caching
   async function loadRecipesFromFirestore() {
-    // Use a simple query without orderBy to avoid index requirements
-    console.log('Loading recipes from Firestore...');
-    const snapshot = await db.collection('recipes').get();
+    // Diagnostic logging for Safari/iOS debugging
+    const startTime = Date.now();
+    console.log('[Firestore] Starting load...');
+    console.log('[Firestore] Navigator:', navigator.userAgent);
+    console.log('[Firestore] Online:', navigator.onLine);
 
-    if (snapshot.empty) {
-      console.warn('Firestore returned empty snapshot');
-      throw new Error('No recipes in Firestore');
+    try {
+      // Use a simple query without orderBy to avoid index requirements
+      const snapshot = await db.collection('recipes').get();
+      const elapsed = Date.now() - startTime;
+      console.log(`[Firestore] Query completed in ${elapsed}ms`);
+
+      if (snapshot.empty) {
+        console.warn('[Firestore] Returned empty snapshot');
+        throw new Error('No recipes in Firestore');
+      }
+
+      // Check if data came from cache or server
+      const fromCache = snapshot.metadata.fromCache;
+      console.log(`[Firestore] Data source: ${fromCache ? 'CACHE' : 'SERVER'}`);
+
+      recipes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      console.log(`[Firestore] Loaded ${recipes.length} recipes`);
+
+      // Sort client-side (faster than waiting for Firestore index)
+      recipes.sort((a, b) => {
+        if (!a.date) return 1;
+        if (!b.date) return -1;
+        return b.date.localeCompare(a.date);
+      });
+
+      // Cache for next load
+      updateRecipesCache();
+    } catch (error) {
+      const elapsed = Date.now() - startTime;
+      console.error(`[Firestore] Failed after ${elapsed}ms:`, error.code, error.message);
+      console.error('[Firestore] Full error:', error);
+      throw error;
     }
-
-    recipes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    console.log(`Loaded ${recipes.length} recipes from Firestore`);
-
-    // Sort client-side (faster than waiting for Firestore index)
-    recipes.sort((a, b) => {
-      if (!a.date) return 1;
-      if (!b.date) return -1;
-      return b.date.localeCompare(a.date);
-    });
-
-    // Cache for next load
-    updateRecipesCache();
   }
 
   // Update localStorage cache after any mutation
@@ -447,6 +469,34 @@
         <div class="offline-banner-text">
           <strong>מצב לא מקוון</strong>
           <span>מציג נתונים ישנים. שינויים לא יישמרו ולא ישותפו.</span>
+        </div>
+        <button class="offline-banner-retry" onclick="location.reload()">נסה שוב</button>
+      </div>
+    `;
+
+    // Insert after header
+    const header = document.querySelector('.app-header');
+    if (header && header.nextSibling) {
+      header.parentNode.insertBefore(banner, header.nextSibling);
+    } else {
+      document.querySelector('.app-container').prepend(banner);
+    }
+  }
+
+  // Show stale data warning banner (when background refresh fails)
+  function showStaleBanner() {
+    // Remove existing banner if any
+    const existingBanner = document.querySelector('.offline-banner');
+    if (existingBanner) existingBanner.remove();
+
+    const banner = document.createElement('div');
+    banner.className = 'offline-banner';
+    banner.innerHTML = `
+      <div class="offline-banner-content">
+        <span class="offline-banner-icon">⚠️</span>
+        <div class="offline-banner-text">
+          <strong>נתונים מהמטמון</strong>
+          <span>לא הצלחנו להתחבר לשרת. ייתכן שהנתונים לא מעודכנים.</span>
         </div>
         <button class="offline-banner-retry" onclick="location.reload()">נסה שוב</button>
       </div>
