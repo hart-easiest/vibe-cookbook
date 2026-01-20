@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fdf8f3"/>
+      <stop offset="100%" stop-color="#f5ede3"/>
+    </linearGradient>
+    <linearGradient id="cover" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#c4704b"/>
+      <stop offset="100%" stop-color="#a85a38"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="180" height="180" rx="40" fill="url(#bg)"/>
+
+  <!-- Book shadow -->
+  <ellipse cx="95" cy="150" rx="50" ry="8" fill="rgba(44,24,16,0.12)"/>
+
+  <!-- Book cover -->
+  <path d="M40 35 L40 140 Q40 150 50 150 L130 150 Q140 150 140 140 L140 35 Q140 28 130 28 L50 28 Q40 28 40 35 Z" fill="url(#cover)"/>
+
+  <!-- Spine -->
+  <rect x="36" y="28" width="12" height="122" rx="3" fill="#8b4a32"/>
+
+  <!-- Pages -->
+  <path d="M52 33 L52 143 Q52 148 58 148 L132 148 Q138 148 138 143 L138 33 Q138 30 132 30 L58 30 Q52 30 52 33 Z" fill="#fffaf5"/>
+
+  <!-- Page lines -->
+  <g stroke="#e8ddd1" stroke-width="2">
+    <line x1="62" y1="50" x2="125" y2="50"/>
+    <line x1="62" y1="62" x2="115" y2="62"/>
+    <line x1="62" y1="74" x2="120" y2="74"/>
+  </g>
+
+  <!-- Plate -->
+  <ellipse cx="95" cy="110" rx="32" ry="10" fill="#fff" stroke="#e8ddd1" stroke-width="1.5"/>
+
+  <!-- Food on plate -->
+  <ellipse cx="95" cy="106" rx="22" ry="6" fill="#8fa668"/>
+  <circle cx="85" cy="104" r="6" fill="#e07a5f"/>
+  <circle cx="85" cy="104" r="4" fill="#c4564a"/>
+  <circle cx="100" cy="106" r="5" fill="#e07a5f"/>
+  <circle cx="100" cy="106" r="3" fill="#c4564a"/>
+  <rect x="92" y="98" width="10" height="5" rx="1" fill="#f5e6d3" transform="rotate(-10 97 100)"/>
+
+  <!-- Bookmark -->
+  <path d="M120 28 L120 55 L125 48 L130 55 L130 28" fill="#d4896a"/>
+</svg>
