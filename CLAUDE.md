@@ -76,11 +76,11 @@ Hierarchical: Main (breakfast, lunch-dinner, dessert, snacks, baby) → Sub-cate
 iOS PWA aggressively caches files. CSS/JS use `?v=HASH` query params for cache-busting.
 
 ```bash
-# Standard deploy - bump version hash when changing app.js or styles.css
+# Standard deploy
 git add . && git commit -m "msg" && git push origin main
 ```
 
-**Cache-busting**: When modifying `app.js` or `styles.css`, update the `?v=` hash in `index.html` (use `git rev-parse --short HEAD` or date like `20250120`).
+**Cache-busting**: When modifying `app.js` or `styles.css`, update the `?v=HASH` in the corresponding `<link>` and `<script>` tags in `index.html`. Use `git rev-parse --short HEAD` after committing, or a date like `20250120`.
 
 ## Future Work
 
