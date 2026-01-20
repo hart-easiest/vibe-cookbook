@@ -396,8 +396,16 @@
   // Load recipes from Firestore with caching
   async function loadRecipesFromFirestore() {
     // Use a simple query without orderBy to avoid index requirements
+    console.log('Loading recipes from Firestore...');
     const snapshot = await db.collection('recipes').get();
+
+    if (snapshot.empty) {
+      console.warn('Firestore returned empty snapshot');
+      throw new Error('No recipes in Firestore');
+    }
+
     recipes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    console.log(`Loaded ${recipes.length} recipes from Firestore`);
 
     // Sort client-side (faster than waiting for Firestore index)
     recipes.sort((a, b) => {
@@ -411,7 +419,7 @@
       localStorage.setItem('recipes_cache', JSON.stringify(recipes));
       localStorage.setItem('recipes_cache_time', Date.now().toString());
     } catch (e) {
-      // localStorage might be full, ignore
+      // localStorage might be full or unavailable, ignore
     }
   }
 
