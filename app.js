@@ -353,6 +353,7 @@
           recipes = JSON.parse(cached);
           if (recipes && recipes.length > 0) {
             console.log('Using expired cache as fallback');
+            showStaleBanner();
             renderTagFilters();
             renderRecipes();
             showLoading(false);
