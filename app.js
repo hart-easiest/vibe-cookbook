@@ -415,6 +415,11 @@
     });
 
     // Cache for next load
+    updateRecipesCache();
+  }
+
+  // Update localStorage cache after any mutation
+  function updateRecipesCache() {
     try {
       localStorage.setItem('recipes_cache', JSON.stringify(recipes));
       localStorage.setItem('recipes_cache_time', Date.now().toString());
@@ -1068,6 +1073,7 @@
     try {
       await db.collection('recipes').doc(currentRecipeId).delete();
       recipes = recipes.filter(r => r.id !== currentRecipeId);
+      updateRecipesCache(); // Sync cache with Firestore
       renderRecipes();
       showToast('המתכון נמחק', 'success');
       closeModal();
@@ -1121,6 +1127,7 @@
 
       // Update local state
       recipes.unshift(newRecipe);
+      updateRecipesCache(); // Sync cache with Firestore
       renderTagFilters();
       renderRecipes();
 
@@ -1558,6 +1565,7 @@
         'content.text': text
       });
 
+      updateRecipesCache(); // Sync cache with Firestore
       showToast('הטקסט נשמר בהצלחה!', 'success');
       closeTranscriptionModal();
 
@@ -1638,6 +1646,7 @@
         tags: editingRecipeTags
       });
 
+      updateRecipesCache(); // Sync cache with Firestore
       showToast('התגיות נשמרו בהצלחה!', 'success');
       closeEditTagsModal();
 
@@ -1695,6 +1704,7 @@
           'content.text': recipeText
         });
 
+        updateRecipesCache(); // Sync cache with Firestore
         showToast('המתכון חולץ בהצלחה!', 'success');
         openRecipe(currentRecipeId); // Refresh modal
       } else {
@@ -2082,6 +2092,7 @@
         mainCategory: newMainCategory || null
       });
 
+      updateRecipesCache(); // Sync cache with Firestore
       showToast('הפרטים עודכנו בהצלחה!', 'success');
       closeEditCategoryModal();
 
