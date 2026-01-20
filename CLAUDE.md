@@ -63,9 +63,11 @@ Hierarchical: Main (breakfast, lunch-dinner, dessert, snacks, baby) → Sub-cate
 ### Social Media
 - Instagram/Facebook/YouTube/TikTok require manual text entry (29 recipes affected)
 
-### Private Browsing
+### Private Browsing / Offline
 - localStorage unavailable - theme preferences won't persist
 - Firebase persistence disabled - recipes load fresh from Firestore each time
+- If Firestore fails, falls back to `recipes.json` with warning banner (editing disabled)
+- Run `node sync-recipes.js` to update recipes.json from Firebase
 
 ## Recipe Stats (Jan 2025)
 

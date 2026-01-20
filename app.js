@@ -46,6 +46,7 @@
   let currentRecipeId = null;
   let currentFormTab = 'link';
   let isInitialized = false;
+  let isOfflineMode = false; // True when using fallback data (recipes.json)
   // Image upload removed - requires paid Firebase plan
 
   // Main category hierarchy
@@ -357,7 +358,29 @@
         } catch (e) {}
       }
 
-      // No cache available - show error (don't use stale recipes.json)
+      // Try recipes.json as final fallback
+      try {
+        const response = await fetch('recipes.json');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.recipes && data.recipes.length > 0) {
+            console.log('Using recipes.json as fallback');
+            recipes = data.recipes;
+            isOfflineMode = true;
+            canEdit = false; // Disable editing in offline mode
+            showOfflineBanner();
+            renderTagFilters();
+            renderRecipes();
+            showLoading(false);
+            isInitialized = true;
+            return;
+          }
+        }
+      } catch (e) {
+        console.error('Failed to load recipes.json fallback:', e);
+      }
+
+      // No fallback available - show error
       recipesContainer.innerHTML = `
         <div class="empty-state">
           <div class="empty-state-icon">😕</div>
@@ -408,6 +431,34 @@
   function showLoading(show) {
     loading.classList.toggle('active', show);
     recipesContainer.style.display = show ? 'none' : 'grid';
+  }
+
+  // Show offline mode warning banner
+  function showOfflineBanner() {
+    // Remove existing banner if any
+    const existingBanner = document.querySelector('.offline-banner');
+    if (existingBanner) existingBanner.remove();
+
+    const banner = document.createElement('div');
+    banner.className = 'offline-banner';
+    banner.innerHTML = `
+      <div class="offline-banner-content">
+        <span class="offline-banner-icon">⚠️</span>
+        <div class="offline-banner-text">
+          <strong>מצב לא מקוון</strong>
+          <span>מציג נתונים ישנים. שינויים לא יישמרו ולא ישותפו.</span>
+        </div>
+        <button class="offline-banner-retry" onclick="location.reload()">נסה שוב</button>
+      </div>
+    `;
+
+    // Insert after header
+    const header = document.querySelector('.app-header');
+    if (header && header.nextSibling) {
+      header.parentNode.insertBefore(banner, header.nextSibling);
+    } else {
+      document.querySelector('.app-container').prepend(banner);
+    }
   }
 
   // Show toast notification
