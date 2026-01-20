@@ -73,14 +73,19 @@ Hierarchical: Main (breakfast, lunch-dinner, dessert, snacks, baby) → Sub-cate
 
 ## Deployment
 
-iOS PWA aggressively caches files. CSS/JS use `?v=HASH` query params for cache-busting.
+iOS PWA aggressively caches files. A pre-commit hook auto-updates `?v=HASH` query params in index.html when app.js or styles.css change.
 
+### First-time setup (required per machine)
 ```bash
-# Standard deploy
+cp scripts/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+```
+
+### Standard deploy
+```bash
 git add . && git commit -m "msg" && git push origin main
 ```
 
-**Cache-busting**: When modifying `app.js` or `styles.css`, update the `?v=HASH` in the corresponding `<link>` and `<script>` tags in `index.html`. Use `git rev-parse --short HEAD` after committing, or a date like `20250120`.
+The pre-commit hook computes MD5 hashes of app.js/styles.css and updates index.html automatically. No manual version bumping needed.
 
 ## Future Work
 
